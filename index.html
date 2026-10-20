@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SubBrain記録</title>
+<meta name="theme-color" content="#1f6f5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="記録">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e2e0d8;
+    --accent: #1f6f5c; --accent-text: #ffffff; --rec: #d13b3b; --ok: #1f6f5c; --ng: #b3261e;
+    --chip-task: #e4efe9; --chip-idea: #fbefd9; --chip-other: #eceaf6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #22221f; --text: #ecebe6; --muted: #a3a29b; --line: #3a3934;
+      --accent: #3fa58a; --accent-text: #0d1f1a; --rec: #ef6b6b; --ok: #5cc3a6; --ng: #f2867f;
+      --chip-task: #24392f; --chip-idea: #40331b; --chip-other: #302e40;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    min-height: 100dvh; display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .icon-btn { background: none; border: 0; color: var(--muted); font-size: 15px; padding: 8px; }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 520px; width: 100%; margin: 0 auto; }
+  #status { min-height: 1.6em; color: var(--muted); font-size: 16px; text-align: center; margin-top: 8px; }
+  #mic {
+    width: 200px; height: 200px; border-radius: 50%; border: 0; margin-top: 12px;
+    background: var(--accent); color: var(--accent-text); font-size: 20px; font-weight: 700;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15); touch-action: manipulation;
+  }
+  #mic svg { width: 64px; height: 64px; }
+  #mic.recording { background: var(--rec); animation: pulse 1.4s ease-in-out infinite; }
+  #mic:disabled { opacity: .55; }
+  @keyframes pulse { 50% { transform: scale(1.04); } }
+  #timer { font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; }
+  .card { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .card[hidden] { display: none; }
+  .transcript { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 10px; }
+  .result { padding: 10px 0; border-top: 1px solid var(--line); }
+  .result:first-of-type { border-top: 0; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; margin-right: 6px; background: var(--chip-other); }
+  .chip.task { background: var(--chip-task); } .chip.idea { background: var(--chip-idea); }
+  .result .where { font-size: 14px; font-weight: 600; }
+  .result .what { font-size: 15px; margin-top: 4px; line-height: 1.5; word-break: break-word; }
+  .result.ng .where { color: var(--ng); }
+  .row { display: flex; gap: 8px; width: 100%; }
+  .btn { flex: 1; font-size: 16px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn.danger { color: var(--ng); }
+  .btn[hidden] { display: none; }
+  details { width: 100%; }
+  summary { color: var(--muted); font-size: 15px; padding: 8px 0; }
+  textarea, input { width: 100%; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: inherit; }
+  textarea { min-height: 96px; margin-bottom: 8px; }
+  dialog { border: 0; border-radius: 16px; padding: 20px; width: min(480px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
+  dialog h2 { font-size: 18px; margin: 0 0 4px; }
+  .note { font-size: 13px; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SubBrain 記録</h1>
+  <button class="icon-btn" id="openSettings" type="button">設定</button>
+</header>
+
+<main>
+  <div id="status">ボタンを押して話してください</div>
+
+  <button id="mic" type="button" aria-label="録音">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/>
+    </svg>
+    <span id="micLabel">話す</span>
+    <span id="timer" hidden>0:00</span>
+  </button>
+
+  <div class="row">
+    <button class="btn" id="retry" type="button" hidden>もう一度送る</button>
+  </div>
+
+  <section class="card" id="resultCard" hidden aria-live="polite">
+    <p class="transcript" id="transcript"></p>
+    <div id="results"></div>
+  </section>
+
+  <div class="row">
+    <button class="btn danger" id="undo" type="button" hidden>直前の記録を取り消す</button>
+  </div>
+
+  <details id="textBox">
+    <summary>文字で入力する</summary>
+    <textarea id="textInput" placeholder="例：明日までに諏訪のA様へ見積を送る"></textarea>
+    <button class="btn primary" id="sendText" type="button" style="width:100%">記録する</button>
+  </details>
+</main>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h2>接続の設定</h2>
+    <p class="note">最初に一度だけ入力します。この端末の中にだけ保存されます。</p>
+    <label for="urlInput">Apps Script のURL（…/exec）</label>
+    <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="secretInput">合言葉（APP_SECRET）</label>
+    <input id="secretInput" type="password" autocomplete="off">
+    <p class="note" id="settingsStatus"></p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="testConn" type="button">接続テスト</button>
+      <button class="btn primary" id="saveSettings" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const MAX_SECONDS = 120;
+  const LABELS = { task: 'タスク', idea: '思いつき', learning: '学び', work: '仕事', content: '発信', inbox: '受信箱' };
+  const $ = (id) => document.getElementById(id);
+  const mic = $('mic'), micLabel = $('micLabel'), timer = $('timer'), statusEl = $('status');
+
+  const store = {
+    get(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } },
+    set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+  };
+  const settings = () => ({ url: store.get('gasUrl'), secret: store.get('appSecret') });
+
+  let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, lastPayload = null, busy = false;
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  async function call(body) {
+    const { url, secret } = settings();
+    if (!url || !secret) { openSettings(); throw new Error('先に接続の設定をしてください。'); }
+    // Content-Type を付けない（text/plain 扱い）ことで、Apps Script への事前確認通信を避ける
+    const res = await fetch(url, { method: 'POST', body: JSON.stringify(Object.assign({ app: true, secret }, body)), redirect: 'follow' });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { throw new Error('サーバーの応答を読めませんでした（URLを確認してください）。'); }
+  }
+
+  function pickMime() {
+    if (!window.MediaRecorder) return '';
+    return ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
+  }
+
+  async function startRecording() {
+    if (!settings().url) { openSettings(); return; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setStatus('マイクを使えません。設定でマイクを許可してください。');
+      return;
+    }
+    const mime = pickMime();
+    recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = onRecordingStop;
+    recorder.start();
+    startedAt = Date.now();
+    mic.classList.add('recording');
+    micLabel.textContent = '止めて記録';
+    timer.hidden = false;
+    timer.textContent = '0:00';
+    setStatus('聞いています…');
+    tick = setInterval(() => {
+      const s = Math.floor((Date.now() - startedAt) / 1000);
+      timer.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      if (s >= MAX_SECONDS) stopRecording();
+    }, 250);
+  }
+
+  function stopRecording() {
+    if (recorder && recorder.state === 'recording') recorder.stop();
+    clearInterval(tick);
+    mic.classList.remove('recording');
+    micLabel.textContent = '話す';
+    timer.hidden = true;
+  }
+
+  async function onRecordingStop() {
+    stream.getTracks().forEach((t) => t.stop());
+    const type = (recorder.mimeType || chunks[0]?.type || 'audio/mp4');
+    const blob = new Blob(chunks, { type });
+    if (Date.now() - startedAt < 700 || blob.size < 1000) { setStatus('短すぎました。もう一度押して話してください。'); return; }
+    const audio_base64 = await blobToBase64(blob);
+    await send({ action: 'record', audio_base64, mime_type: type });
+  }
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function send(payload) {
+    lastPayload = payload;
+    busy = true;
+    mic.disabled = true;
+    $('retry').hidden = true;
+    setStatus(payload.text ? '記録しています…' : '文字にして振り分けています…');
+    try {
+      const data = await call(payload);
+      showResult(data);
+      if (data.ok) { lastPayload = null; $('textInput').value = ''; }
+      else if (data.error === 'request_failed' || data.error === 'unauthorized') $('retry').hidden = false;
+    } catch (err) {
+      setStatus('送れませんでした：' + (err.message || '通信エラー'));
+      $('retry').hidden = !lastPayload;
+    } finally {
+      busy = false;
+      mic.disabled = false;
+    }
+  }
+
+  function showResult(data) {
+    const list = $('results');
+    list.textContent = '';
+    $('transcript').textContent = data.transcript ? '「' + data.transcript + '」' : '';
+    (data.results || []).forEach((r) => {
+      const div = document.createElement('div');
+      div.className = 'result' + (r.ok ? '' : ' ng');
+      const chip = document.createElement('span');
+      chip.className = 'chip ' + r.category;
+      chip.textContent = LABELS[r.category] || r.category;
+      const where = document.createElement('span');
+      where.className = 'where';
+      where.textContent = r.ok
+        ? (r.duplicate ? '保存済み（重複のためスキップ）' : (r.path || '') + (r.section ? '「' + r.section + '」' : ''))
+        : '保存できませんでした';
+      const what = document.createElement('div');
+      what.className = 'what';
+      what.textContent = r.ok ? r.content : r.content + ' — ' + r.message;
+      div.append(chip, where, what);
+      list.append(div);
+    });
+    $('resultCard').hidden = !(data.transcript || (data.results || []).length);
+    const saved = (data.results || []).filter((r) => r.ok && !r.duplicate).length;
+    setStatus(data.ok ? (saved ? saved + '件 記録しました' : '新しく記録したものはありません') : (data.message || '記録できませんでした'));
+    $('undo').hidden = !data.undo_available;
+  }
+
+  async function undo() {
+    if (busy || !confirm('直前の記録を取り消しますか？')) return;
+    busy = true;
+    $('undo').disabled = true;
+    setStatus('取り消しています…');
+    try {
+      const data = await call({ action: 'undo' });
+      setStatus(data.message || (data.ok ? '取り消しました' : '取り消せませんでした'));
+      if (data.ok || data.error === 'no_undo') { $('undo').hidden = true; $('resultCard').hidden = true; }
+    } catch (err) {
+      setStatus('取り消せませんでした：' + err.message);
+    } finally {
+      busy = false;
+      $('undo').disabled = false;
+    }
+  }
+
+  function openSettings() {
+    const s = settings();
+    $('urlInput').value = s.url;
+    $('secretInput').value = s.secret;
+    $('settingsStatus').textContent = '';
+    $('settings').showModal();
+  }
+
+  mic.addEventListener('click', () => {
+    if (busy) return;
+    if (recorder && recorder.state === 'recording') stopRecording();
+    else startRecording();
+  });
+  $('retry').addEventListener('click', () => { if (lastPayload && !busy) send(lastPayload); });
+  $('undo').addEventListener('click', undo);
+  $('sendText').addEventListener('click', () => {
+    const text = $('textInput').value.trim();
+    if (text && !busy) send({ action: 'record', text });
+  });
+  $('openSettings').addEventListener('click', openSettings);
+  $('saveSettings').addEventListener('click', () => {
+    store.set('gasUrl', $('urlInput').value.trim());
+    store.set('appSecret', $('secretInput').value.trim());
+  });
+  $('testConn').addEventListener('click', async () => {
+    store.set('gasUrl', $('urlInput').value.trim());
+    store.set('appSecret', $('secretInput').value.trim());
+    $('settingsStatus').textContent = '確認しています…';
+    try {
+      const data = await call({ action: 'health' });
+      $('settingsStatus').textContent = data.ok ? 'つながりました。' : '接続できません：' + (data.message || data.error);
+      if (data.ok) $('undo').hidden = !data.undo_available;
+    } catch (err) {
+      $('settingsStatus').textContent = '接続できません：' + err.message;
+    }
+  });
+
+  if (!window.MediaRecorder) setStatus('このブラウザは録音に対応していません。文字で入力してください。');
+  if (!settings().url) setStatus('右上の「設定」から接続先を入れてください');
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
