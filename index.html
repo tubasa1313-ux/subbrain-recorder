@@ -67,6 +67,7 @@
   summary { color: var(--muted); font-size: 15px; padding: 8px 0; }
   textarea, input { width: 100%; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: inherit; }
   textarea { min-height: 96px; margin-bottom: 8px; }
+  input.masked { -webkit-text-security: disc; }
   dialog { border: 0; border-radius: 16px; padding: 20px; width: min(480px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
   dialog::backdrop { background: rgba(0,0,0,.4); }
   dialog label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
@@ -118,7 +119,9 @@
     <label for="urlInput">Apps Script のURL（…/exec）</label>
     <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
     <label for="secretInput">合言葉（APP_SECRET）</label>
-    <input id="secretInput" type="password" autocomplete="off">
+    <input id="secretInput" class="masked" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <label style="display:flex;align-items:center;gap:6px;margin-top:8px"><input id="showSecret" type="checkbox" style="width:auto"> 合言葉を表示する</label>
+    <p class="note">日本語（ひらがな）の合言葉も入力できます。</p>
     <p class="note" id="settingsStatus"></p>
     <div class="row" style="margin-top:12px">
       <button class="btn" id="testConn" type="button">接続テスト</button>
@@ -297,11 +300,12 @@
   $('openSettings').addEventListener('click', openSettings);
   $('saveSettings').addEventListener('click', () => {
     store.set('gasUrl', $('urlInput').value.trim());
-    store.set('appSecret', $('secretInput').value.trim());
+    store.set('appSecret', $('secretInput').value.trim().normalize('NFC'));
   });
+  $('showSecret').addEventListener('change', (e) => { $('secretInput').classList.toggle('masked', !e.target.checked); });
   $('testConn').addEventListener('click', async () => {
     store.set('gasUrl', $('urlInput').value.trim());
-    store.set('appSecret', $('secretInput').value.trim());
+    store.set('appSecret', $('secretInput').value.trim().normalize('NFC'));
     $('settingsStatus').textContent = '確認しています…';
     try {
       const data = await call({ action: 'health' });

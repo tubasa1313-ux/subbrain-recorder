@@ -1,5 +1,5 @@
 // 画面のファイルだけを保存し、記録の送信（Apps Script への POST）には関わりません。
-const CACHE = 'subbrain-recorder-v1';
+const CACHE = 'subbrain-recorder-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
