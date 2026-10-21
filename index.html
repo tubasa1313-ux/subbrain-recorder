@@ -125,6 +125,20 @@
   .empty { text-align: center; color: var(--muted); padding: 32px 0 8px; }
   .empty svg.i { width: 40px; height: 40px; color: var(--accent); }
   .band { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 600; }
+  .band.pending { margin-top: 12px; padding: 4px 4px 4px 14px; gap: 4px; }
+  .band.pending span { flex: 1; }
+  .band.pending button { border: 0; background: none; color: inherit; font-weight: 700; min-height: 44px; padding: 0 10px; }
+  .band.pending button.sub { font-weight: 400; opacity: .8; }
+  .task .done-btn { flex: none; width: 44px; height: 44px; margin: 0 -8px 0 -4px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
+  .task .done-btn span { width: 24px; height: 24px; border-radius: 50%; border: 2px solid currentColor; display: grid; place-items: center; transition: background .15s; }
+  .task .done-btn svg.i { width: 16px; height: 16px; opacity: 0; }
+  .task .body { cursor: pointer; }
+  .task.leaving { opacity: .45; transition: opacity .2s; }
+  .task.leaving .done-btn span { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .task.leaving .done-btn svg.i { opacity: 1; }
+  .ts-text { font-size: 17px; font-weight: 600; margin: 4px 0 2px; word-break: break-word; }
+  .quick { display: flex; gap: 8px; flex-wrap: wrap; }
+  .quick button { flex: 1 1 22%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; }
 
   /* ---- タブバー・スナックバー・シート ---- */
   .tabbar {
@@ -148,7 +162,7 @@
   dialog.sheet { margin: auto auto 0; border-radius: 20px 20px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
   .sheet-head { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
   .sheet-head h2 { font-size: 17px; margin: 0; }
-  textarea, input[type="url"], input[type="text"] { width: 100%; font: inherit; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  textarea, input[type="url"], input[type="text"], input[type="date"] { width: 100%; font: inherit; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
   textarea { min-height: 120px; resize: vertical; }
   input.masked { -webkit-text-security: disc; }
   label.f { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
@@ -197,6 +211,12 @@
       <button class="text-btn" id="openText" type="button"><svg class="i"><use href="#i-keyboard"/></svg>文字で入力</button>
     </div>
 
+    <div class="band pending" id="pendingBand" hidden>
+      <span id="pendingText"></span>
+      <button type="button" class="sub" id="dropPending">消す</button>
+      <button type="button" id="sendPending">送る</button>
+    </div>
+
     <section class="card" id="resultCard" hidden aria-live="polite">
       <div class="card-head">
         <h2 id="resultTitle">記録しました</h2>
@@ -205,8 +225,7 @@
       <p class="transcript" id="transcript"></p>
       <div id="results"></div>
       <div class="row" id="resultActions" hidden>
-        <button class="btn primary" id="retry" type="button" hidden>もう一度送る</button>
-        <button class="btn" id="retryText" type="button" hidden>失敗した分を文字で直して送る</button>
+        <button class="btn" id="retryText" type="button">失敗した分を文字で直して送る</button>
       </div>
     </section>
   </section>
@@ -245,6 +264,28 @@
   </div>
   <textarea id="textInput" placeholder="例：明日までに水上邸の見積を送る"></textarea>
   <div class="row"><button class="btn primary" id="sendText" type="button">記録する</button></div>
+</dialog>
+
+<dialog id="taskSheet" class="sheet" aria-labelledby="taskSheetTitle">
+  <div class="sheet-head">
+    <h2 id="taskSheetTitle">タスク</h2>
+    <button class="icon-btn" type="button" data-close="taskSheet" aria-label="閉じる"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="ts-text" id="tsText"></p>
+  <p class="note" id="tsInfo"></p>
+  <div class="row"><button class="btn primary" id="tsDone" type="button">完了にする</button></div>
+  <label class="f">期限を変える</label>
+  <div class="quick" id="tsQuick">
+    <button type="button" data-days="0">今日</button>
+    <button type="button" data-days="1">明日</button>
+    <button type="button" data-days="mon">来週月曜</button>
+    <button type="button" data-days="7">1週間後</button>
+  </div>
+  <div class="row">
+    <input type="date" id="tsDate" aria-label="日付を選ぶ" style="flex:1">
+    <button class="btn" id="tsSetDate" type="button" style="flex:none;padding:0 16px">この日にする</button>
+  </div>
+  <div class="row"><button class="btn" id="tsClear" type="button">期限を外す</button></div>
 </dialog>
 
 <dialog id="settings" class="sheet" aria-labelledby="settingsTitle">
@@ -287,14 +328,25 @@
     get(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } },
     set(key, value) { try { localStorage.setItem(key, value); } catch {} if (key === 'gasUrl' || key === 'appSecret') idbSet(key, value); },
   };
-  // 通知を受けたとき sw.js がタスクを取りに行けるよう、接続先を IndexedDB にも置く
-  function idbSet(key, value) {
-    try {
-      const req = indexedDB.open('subbrain', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('kv');
-      req.onsuccess = () => { req.result.transaction('kv', 'readwrite').objectStore('kv').put(value, key); };
-    } catch {}
+  // IndexedDB（sw.js と共用。版は 1 のまま変えない）。
+  // 通知を受けたとき sw.js がタスクを取りに行けるよう接続先を置くほか、未送信の録音を "pending:<id>" で置く。
+  function idb(mode, fn) {
+    return new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open('subbrain', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('kv');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const tx = req.result.transaction('kv', mode);
+          const r = fn(tx.objectStore('kv'));
+          tx.oncomplete = () => resolve(r && r.result);
+          tx.onerror = () => reject(tx.error);
+        };
+      } catch (err) { reject(err); }
+    });
   }
+  const idbSet = (key, value) => idb('readwrite', (s) => s.put(value, key)).catch(() => {});
+  const PENDING_RANGE = () => IDBKeyRange.bound('pending:', 'pending:￿');
   const settings = () => ({ url: store.get('gasUrl'), secret: store.get('appSecret') });
   const configured = () => !!(settings().url && settings().secret);
 
@@ -309,7 +361,8 @@
       const text = await res.text();
       try { return JSON.parse(text); } catch { throw new Error('サーバーの応答を読めませんでした（URLを確認してください）。'); }
     } catch (err) {
-      if (err.name === 'AbortError') throw new Error('時間切れになりました。予定タブで記録されたか確かめてから送り直してください。');
+      if (err.name === 'AbortError') throw new Error('時間切れになりました。');
+      if (err instanceof TypeError) throw new Error('通信できませんでした'); // Failed to fetch / Load failed
       throw err;
     } finally {
       clearTimeout(timer);
@@ -332,7 +385,7 @@
   $('tab-plan').addEventListener('click', () => showTab('plan'));
 
   // ---------- 録音 ----------
-  let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, stageTimer = null, lastPayload = null, busy = false;
+  let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, stageTimer = null, busy = false;
 
   function setMic(state) {
     mic.dataset.state = state;
@@ -398,7 +451,7 @@
     }
     try {
       const audio_base64 = await blobToBase64(blob);
-      await send({ action: 'record', audio_base64, mime_type: type });
+      await sendNew({ action: 'record', audio_base64, mime_type: type });
     } catch (err) {
       busy = false;
       setMic('error');
@@ -427,8 +480,42 @@
     stageTimer = setInterval(stage, 500);
   }
 
+  // ---------- 未送信の保存 ----------
+  // 送る前に端末へ保存し、サーバーから答えが返ってきたら消す。電波切れやアプリを閉じても録音が残る。
+  // client_id はサーバー側で6時間覚えているので、同じ録音を送り直しても二重に記録されない。
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
+  const listPending = () => idb('readonly', (s) => s.getAll(PENDING_RANGE())).then((list) => (list || []).sort((a, b) => a.at - b.at)).catch(() => []);
+  const dropPending = (id) => idb('readwrite', (s) => s.delete('pending:' + id)).catch(() => {});
+
+  async function refreshPending() {
+    const list = await listPending();
+    $('pendingBand').hidden = !list.length;
+    $('pendingText').textContent = '未送信 ' + list.length + '件（端末に保存中）';
+    return list;
+  }
+
+  async function sendNew(payload) {
+    payload.client_id = newId();
+    await idbSet('pending:' + payload.client_id, Object.assign({ at: Date.now() }, payload));
+    return send(payload);
+  }
+
+  let flushing = false;
+  async function flushPending() {
+    if (flushing || busy || !configured() || !navigator.onLine) return;
+    flushing = true;
+    try {
+      for (const item of await listPending()) {
+        if (!(await send(item))) break;
+      }
+    } finally {
+      flushing = false;
+      refreshPending();
+    }
+  }
+
+  /** 送って結果を出す。サーバーが受け取って片付いたら true（端末の保存も消す）。 */
   async function send(payload) {
-    lastPayload = payload;
     busy = true;
     setMic('sending');
     $('resultActions').hidden = true;
@@ -440,20 +527,22 @@
       clearInterval(stageTimer);
       busy = false;
       setMic('error');
-      setStatus('送れませんでした：' + (err.message || '通信エラー'));
-      showActions({ retry: true });
-      return;
+      setStatus('送れませんでした（' + (err.message || '通信エラー') + '）。この端末に保存したので、電波のよい所で「送る」を押してください。');
+      refreshPending();
+      return false;
     }
     clearInterval(stageTimer);
     busy = false;
+    const settled = data.ok || data.error === 'empty' || data.error === 'nothing_to_record';
+    if (settled && payload.client_id) await dropPending(payload.client_id);
     showResult(data, payload);
+    refreshPending();
+    return settled;
   }
 
-  function showActions({ retry = false, retryText = false }) {
-    $('retry').hidden = !retry;
-    $('retryText').hidden = !retryText;
-    $('resultActions').hidden = !(retry || retryText);
-    if (retry || retryText) $('resultCard').hidden = false;
+  function showActions({ retryText = false }) {
+    $('resultActions').hidden = !retryText;
+    if (retryText) $('resultCard').hidden = false;
   }
 
   function showResult(data, payload) {
@@ -492,28 +581,34 @@
       setStatus(saved ? saved + '件 記録しました' : '新しく記録したものはありません');
       setTimeout(() => { if (mic.dataset.state === 'done') { setMic('idle'); setStatus('ボタンを押して話してください'); } }, 1600);
       if (payload.text && !failed.length) $('textInput').value = '';
-      if (saved) showSnack(saved + '件 記録しました');
+      if (saved) showSnack(saved + '件 記録しました' + (data.already ? '（送信済みの分）' : ''), undo);
       if (results.some((r) => r.ok && r.category === 'task')) loadTasks(true);
-      lastPayload = failed.length ? lastPayload : null;
       showActions({ retryText: failed.length > 0 });
       window._failed = failed;
     } else {
       setMic('error');
       setStatus(data.message || '記録できませんでした');
-      // 全部失敗したときだけ、同じ内容をそのまま送り直せる
-      showActions({ retry: data.error !== 'empty' && data.error !== 'nothing_to_record', retryText: failed.length > 0 });
+      // 全部失敗した録音は端末に残っているので、上の「送る」で送り直せる
+      showActions({ retryText: failed.length > 0 });
       window._failed = failed;
     }
   }
 
   // ---------- 取り消し（スナックバーと結果カード） ----------
-  let snackTimer = null;
-  function showSnack(text) {
+  let snackTimer = null, snackAction = null;
+  /** 下に知らせを8秒出す。onUndo を渡すと「取り消す」ボタンが付く。 */
+  function showSnack(text, onUndo) {
     $('snackText').textContent = text;
+    snackAction = onUndo || null;
+    $('snackUndo').hidden = !onUndo;
     $('snackbar').hidden = false;
     clearTimeout(snackTimer);
     snackTimer = setTimeout(() => { $('snackbar').hidden = true; }, 8000);
   }
+  $('snackUndo').addEventListener('click', () => {
+    $('snackbar').hidden = true;
+    if (snackAction) snackAction();
+  });
 
   async function undo() {
     if (busy) return;
@@ -576,10 +671,14 @@
     return g;
   }
 
+  let shownTasks = [];
   function taskRows(items) {
     return '<ul class="tasks">' + items.map((t) => {
       const pill = t.due ? relLabel(t.diff) : null;
-      return '<li class="task" data-sec="' + esc(t.section || '') + '"><div class="body"><div class="t">' + esc(t.text) + '</div>'
+      const i = shownTasks.push(t) - 1;
+      return '<li class="task" data-i="' + i + '" data-sec="' + esc(t.section || '') + '">'
+        + '<button type="button" class="done-btn" aria-label="完了にする：' + esc(t.text) + '"><span><svg class="i"><use href="#i-check"/></svg></span></button>'
+        + '<div class="body" role="button" tabindex="0"><div class="t">' + esc(t.text) + '</div>'
         + '<div class="s">' + esc(t.section || '') + '</div></div>'
         + (pill ? '<div class="pill ' + pill.cls + '"><b>' + pill.text + '</b><small>' + mdw(t.due) + '</small></div>' : '')
         + '</li>';
@@ -587,6 +686,7 @@
   }
 
   function renderPlan(data, at) {
+    shownTasks = [];
     const g = groupTasks(data);
     const block = (key, title) => g[key].length
       ? '<section class="group ' + key + '"><h3>' + title + '<span class="n">' + g[key].length + '件</span></h3>' + taskRows(g[key]) + '</section>' : '';
@@ -645,6 +745,84 @@
     }
   }
   $('reloadTasks').addEventListener('click', () => loadTasks(true));
+
+  // ---------- タスクの完了・期限の変更 ----------
+  // サーバーは書き換えたあとの一覧（tasks）を返すので、それで描き直す。受信箱の件数だけは前の値を使う。
+  async function taskOp(body) {
+    const data = await call(Object.assign({ action: 'task' }, body));
+    if (data.tasks) {
+      const prev = cachedTasks();
+      const merged = Object.assign({ ok: true, inbox_count: prev ? prev.data.inbox_count : 0 }, data.tasks);
+      const at = Date.now();
+      store.set('tasksCache', JSON.stringify({ data: merged, at }));
+      lastLoad = at;
+      renderPlan(merged, at);
+    }
+    if (!data.ok) showSnack(data.message || '変更できませんでした');
+    return data;
+  }
+
+  async function completeTask(t, li) {
+    if (li) { if (li.classList.contains('leaving')) return; li.classList.add('leaving'); }
+    try {
+      const res = await taskOp({ op: 'done', line: t.line });
+      if (res.ok) showSnack('完了にしました：' + t.text, () => taskOp({ op: 'reopen', line: res.line, section: t.section }).catch((err) => showSnack('戻せませんでした：' + err.message)));
+    } catch (err) {
+      if (li) li.classList.remove('leaving');
+      showSnack('完了にできませんでした：' + err.message);
+    }
+  }
+
+  async function changeDue(t, due) {
+    $('taskSheet').close();
+    try {
+      const res = await taskOp({ op: 'due', line: t.line, due });
+      if (res.ok) showSnack(due ? '期限を ' + mdw(due) + ' にしました' : '期限を外しました', () => taskOp({ op: 'due', line: res.line, due: t.due || '' }).catch(() => {}));
+    } catch (err) {
+      showSnack('変更できませんでした：' + err.message);
+    }
+  }
+
+  function dateAfter(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  let sheetTask = null;
+  function openTaskSheet(t) {
+    sheetTask = t;
+    $('tsText').textContent = t.text;
+    $('tsInfo').textContent = (t.section || '') + '・' + (t.due ? '期限 ' + mdw(t.due) + '（' + relLabel(dayDiff(t.due, localToday())).text + '）' : '期限なし');
+    $('tsDate').value = t.due || '';
+    $('tsClear').hidden = !t.due;
+    openSheet('taskSheet');
+  }
+
+  $('planBody').addEventListener('click', (e) => {
+    const li = e.target.closest('.task');
+    if (!li || !shownTasks[li.dataset.i]) return;
+    const t = shownTasks[li.dataset.i];
+    if (!t.line) { showSnack('Apps Script を新しい版にすると、ここで完了・期限変更ができます'); return; }
+    if (e.target.closest('.done-btn')) completeTask(t, li);
+    else openTaskSheet(t);
+  });
+  $('planBody').addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('body')) { e.preventDefault(); e.target.click(); }
+  });
+  $('tsDone').addEventListener('click', () => {
+    $('taskSheet').close();
+    const li = document.querySelector('.task[data-i="' + shownTasks.indexOf(sheetTask) + '"]');
+    completeTask(sheetTask, li);
+  });
+  $('tsQuick').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.days;
+    // 来週の月曜：今日が月曜でも次の週の月曜
+    const days = v === 'mon' ? ((8 - new Date().getDay()) % 7 || 7) : Number(v);
+    changeDue(sheetTask, dateAfter(days));
+  }));
+  $('tsSetDate').addEventListener('click', () => { if ($('tsDate').value) changeDue(sheetTask, $('tsDate').value); });
+  $('tsClear').addEventListener('click', () => changeDue(sheetTask, ''));
   document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
     store.set('taskFilter', b.dataset.filter);
     document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -663,15 +841,21 @@
     if (!text || busy) return;
     $('textSheet').close();
     showTab('rec');
-    send({ action: 'record', text });
+    sendNew({ action: 'record', text });
   });
-  $('retry').addEventListener('click', () => { if (lastPayload && !busy) send(lastPayload); });
   $('retryText').addEventListener('click', () => {
     $('textInput').value = (window._failed || []).map((r) => r.content).join('\n');
     openSheet('textSheet');
   });
   $('undo').addEventListener('click', undo);
-  $('snackUndo').addEventListener('click', undo);
+  $('sendPending').addEventListener('click', flushPending);
+  $('dropPending').addEventListener('click', async () => {
+    const list = await listPending();
+    if (!list.length || !confirm('未送信の ' + list.length + '件を、送らずに消しますか？（元に戻せません）')) return;
+    for (const item of list) await dropPending(item.client_id);
+    refreshPending();
+    setStatus('未送信の分を消しました');
+  });
 
   function openSettings() {
     const s = settings();
@@ -771,7 +955,8 @@
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.view === 'tasks') showTab('plan'); });
   }
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadTasks(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadTasks(); flushPending(); } });
+  window.addEventListener('online', flushPending);
 
   const { url: savedUrl, secret: savedSecret } = settings();
   if (savedUrl) { idbSet('gasUrl', savedUrl); idbSet('appSecret', savedSecret); }
@@ -786,6 +971,8 @@
     loadTasks(true);
     checkHealth();
   }
+  // 前回送れなかった録音があれば知らせて、自動で送る
+  refreshPending().then((list) => { if (list.length) flushPending(); });
   if (new URLSearchParams(location.search).get('view') === 'tasks') showTab('plan');
   const filter = store.get('taskFilter') || 'all';
   document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === filter)));

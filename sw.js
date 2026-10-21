@@ -1,5 +1,5 @@
 // 画面のファイルの保存と、朝のタスク通知の表示を受け持ちます。記録の送信（Apps Script への POST）には関わりません。
-const CACHE = 'subbrain-recorder-v4';
+const CACHE = 'subbrain-recorder-v5';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
