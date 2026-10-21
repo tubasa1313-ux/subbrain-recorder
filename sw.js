@@ -1,5 +1,5 @@
 // 画面のファイルの保存と、朝のタスク通知の表示を受け持ちます。記録の送信（Apps Script への POST）には関わりません。
-const CACHE = 'subbrain-recorder-v3';
+const CACHE = 'subbrain-recorder-v4';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -21,11 +21,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
+        // ?view=tasks などの付いたURLを別々に保存しない
+        const url = new URL(request.url);
         const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
+        if (response.ok) caches.open(CACHE).then((cache) => cache.put(url.origin + url.pathname, copy));
         return response;
       })
-      .catch(() => caches.match(request)),
+      .catch(() => caches.match(request, { ignoreSearch: true })),
   );
 });
 
@@ -76,7 +78,11 @@ async function showMorningNotification() {
       const res = await fetch(url, { method: 'POST', body: JSON.stringify({ app: true, secret, action: 'tasks' }), signal: controller.signal });
       clearTimeout(timer);
       const data = await res.json();
-      if (data.ok) ({ title, body } = formatTasks(data));
+      if (data.ok) {
+        ({ title, body } = formatTasks(data));
+        const urgent = data.overdue.length + data.today.length;
+        if (self.navigator && 'setAppBadge' in self.navigator) await (urgent ? self.navigator.setAppBadge(urgent) : self.navigator.clearAppBadge()).catch(() => {});
+      }
     }
   } catch (error) {
     // 取れなかったときは汎用の文面で知らせる
@@ -104,6 +110,6 @@ self.addEventListener('notificationclick', (event) => {
         return;
       }
     }
-    await self.clients.openWindow('./?view=tasks');
+    await self.clients.openWindow((event.notification.data && event.notification.data.url) || './?view=tasks');
   })());
 });

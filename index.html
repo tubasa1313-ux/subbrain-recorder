@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SubBrain記録</title>
-<meta name="theme-color" content="#1f6f5c">
+<meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="記録">
@@ -13,183 +14,337 @@
 <link rel="icon" href="icon-192.png">
 <style>
   :root {
-    --bg: #f6f5f1; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e2e0d8;
-    --accent: #1f6f5c; --accent-text: #ffffff; --rec: #d13b3b; --ok: #1f6f5c; --ng: #b3261e;
-    --chip-task: #e4efe9; --chip-idea: #fbefd9; --chip-other: #eceaf6;
+    --bg: #F5F4EF; --surface: #FFFFFF; --surface-2: #EEEDE6; --text: #1C1C1A; --muted: #66655F; --line: #E3E1D9;
+    --accent: #1F6F5C; --accent-soft: #E2EFEA; --on-accent: #FFFFFF; --rec: #D13B3B;
+    --danger: #B3261E; --danger-soft: #FBE9E7; --warn: #A35A00; --warn-soft: #FBF0DC;
+    --work: #2F5FA8; --work-soft: #E6EEFA; --private: #8A4FA0; --private-soft: #F3EAF7;
+    --shadow: 0 1px 2px rgba(0,0,0,.05);
+    --tabbar: 58px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #151514; --card: #22221f; --text: #ecebe6; --muted: #a3a29b; --line: #3a3934;
-      --accent: #3fa58a; --accent-text: #0d1f1a; --rec: #ef6b6b; --ok: #5cc3a6; --ng: #f2867f;
-      --chip-task: #24392f; --chip-idea: #40331b; --chip-other: #302e40;
+      --bg: #121211; --surface: #1E1E1C; --surface-2: #2A2A27; --text: #ECEBE6; --muted: #A3A29B; --line: #34332F;
+      --accent: #4DB596; --accent-soft: #1D3A31; --on-accent: #0D1F1A; --rec: #F06A6A;
+      --danger: #F2867F; --danger-soft: #3A1F1D; --warn: #E3A651; --warn-soft: #3A2E1A;
+      --work: #7FA8E8; --work-soft: #1F2C40; --private: #C99BDB; --private-soft: #33263A;
+      --shadow: none;
     }
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  html, body { margin: 0; background: var(--bg); color: var(--text); overscroll-behavior: none; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
-    min-height: 100dvh; display: flex; flex-direction: column;
-    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);
+    font-size: 15px; line-height: 1.5; min-height: 100dvh;
+    padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px) max(16px, env(safe-area-inset-left));
     -webkit-tap-highlight-color: transparent;
   }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
-  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
-  .icon-btn { background: none; border: 0; color: var(--muted); font-size: 15px; padding: 8px; }
-  main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 520px; width: 100%; margin: 0 auto; }
-  #status { min-height: 1.6em; color: var(--muted); font-size: 16px; text-align: center; margin-top: 8px; }
+  button { font: inherit; color: inherit; }
+  svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  [hidden] { display: none !important; }
+
+  header { display: flex; align-items: center; justify-content: space-between; height: 52px; max-width: 560px; margin: 0 auto; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: .02em; }
+  .icon-btn { width: 44px; height: 44px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; border-radius: 12px; }
+  .icon-btn:active { background: var(--surface-2); }
+  main { max-width: 560px; margin: 0 auto; }
+
+  /* ---- 記録タブ ---- */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 36px; margin-top: 4px; }
+  .chip-btn { border: 0; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; background: var(--surface-2); color: var(--text); min-height: 32px; }
+  .chip-btn.danger { background: var(--danger-soft); color: var(--danger); }
+  .chip-btn.today { background: var(--accent-soft); color: var(--accent); }
+  .rec-area { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0 8px; }
+  #status { min-height: 1.5em; color: var(--muted); font-size: 15px; text-align: center; }
+  .mic-wrap { position: relative; width: 208px; height: 208px; display: grid; place-items: center; }
   #mic {
-    width: 200px; height: 200px; border-radius: 50%; border: 0; margin-top: 12px;
-    background: var(--accent); color: var(--accent-text); font-size: 20px; font-weight: 700;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.15); touch-action: manipulation;
+    width: 192px; height: 192px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font-size: 17px; font-weight: 600; box-shadow: 0 10px 28px rgba(31,111,92,.28);
+    touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    transition: background .2s, transform .1s;
   }
-  #mic svg { width: 64px; height: 64px; }
-  #mic.recording { background: var(--rec); animation: pulse 1.4s ease-in-out infinite; }
-  #mic:disabled { opacity: .55; }
-  @keyframes pulse { 50% { transform: scale(1.04); } }
-  #timer { font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; }
-  .card { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-  .card[hidden] { display: none; }
-  .transcript { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 10px; }
-  .result { padding: 10px 0; border-top: 1px solid var(--line); }
-  .result:first-of-type { border-top: 0; }
-  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; margin-right: 6px; background: var(--chip-other); }
-  .chip.task { background: var(--chip-task); } .chip.idea { background: var(--chip-idea); }
-  .result .where { font-size: 14px; font-weight: 600; }
-  .result .what { font-size: 15px; margin-top: 4px; line-height: 1.5; word-break: break-word; }
-  .result.ng .where { color: var(--ng); }
-  .row { display: flex; gap: 8px; width: 100%; }
-  .btn { flex: 1; font-size: 16px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
-  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-  .btn.danger { color: var(--ng); }
-  .btn[hidden] { display: none; }
-  details { width: 100%; }
-  summary { color: var(--muted); font-size: 15px; padding: 8px 0; }
-  textarea, input { width: 100%; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: inherit; }
-  textarea { min-height: 96px; margin-bottom: 8px; }
-  input.masked { -webkit-text-security: disc; }
+  #mic:active { transform: scale(.97); }
+  #mic svg.i { width: 56px; height: 56px; }
+  #mic[data-state="rec"] { background: var(--rec); box-shadow: 0 10px 28px rgba(209,59,59,.3); animation: pulse 1.4s ease-in-out infinite; }
+  #mic[data-state="sending"] { background: var(--surface-2); color: var(--muted); box-shadow: none; }
+  #mic[data-state="done"] { background: var(--accent); }
+  #mic[data-state="error"] { background: var(--surface-2); color: var(--danger); box-shadow: none; }
+  .ring { position: absolute; inset: 0; border-radius: 50%; border: 4px solid transparent; border-top-color: var(--accent); animation: spin 1s linear infinite; }
+  @keyframes pulse { 50% { transform: scale(1.035); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #timer { font-size: 20px; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hint { color: var(--muted); font-size: 13px; min-height: 1.5em; text-align: center; }
+  .text-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0 16px; height: 44px; font-size: 15px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); margin-top: 16px; }
   .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .link-btn { background: none; border: 0; color: var(--accent); font-size: 15px; padding: 4px 0; }
-  .tasks h3 { font-size: 14px; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
-  .tasks ul { margin: 0; padding-left: 1.2em; }
-  .tasks li { font-size: 15px; line-height: 1.6; }
-  .tasks .due { color: var(--muted); font-size: 13px; margin-left: 4px; }
-  .tasks .overdue { color: var(--ng); }
-  dialog { border: 0; border-radius: 16px; padding: 20px; width: min(480px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
+  .card-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  .small-btn { border: 0; background: none; color: var(--accent); font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 4px; }
+  .transcript { color: var(--muted); font-size: 13px; margin: 8px 0 4px; }
+  .result { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .result:first-child { border-top: 0; }
+  .cat { flex: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); height: fit-content; margin-top: 2px; }
+  .cat.c-task { background: var(--accent-soft); color: var(--accent); }
+  .cat.c-idea { background: var(--warn-soft); color: var(--warn); }
+  .result .what { font-size: 15px; word-break: break-word; }
+  .result .where { font-size: 13px; color: var(--muted); }
+  .result.ng .where { color: var(--danger); }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn { flex: 1; min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; font-weight: 600; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+  /* ---- 予定タブ ---- */
+  .plan-head { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+  .plan-head h2 { font-size: 20px; margin: 0; }
+  .updated { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 2px; }
+  .seg { display: flex; background: var(--surface-2); border-radius: 12px; padding: 3px; margin: 12px 0 4px; }
+  .seg button { flex: 1; border: 0; background: none; height: 38px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .group { margin-top: 18px; }
+  .group h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 6px; display: flex; gap: 6px; align-items: baseline; }
+  .group h3 .n { font-weight: 400; }
+  .group.overdue h3 { color: var(--danger); }
+  .tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+  .task { display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 0; border-top: 1px solid var(--line); min-height: 56px; }
+  .task:first-child { border-top: 0; }
+  .task::before { content: ""; align-self: stretch; width: 4px; border-radius: 0 4px 4px 0; background: var(--work); flex: none; }
+  .task[data-sec="私生活"]::before { background: var(--private); }
+  .task .body { flex: 1; min-width: 0; }
+  .task .t { font-size: 16px; word-break: break-word; }
+  .task .s { font-size: 12px; color: var(--muted); }
+  .pill { flex: none; text-align: right; }
+  .pill b { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); }
+  .pill small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pill.over b { background: var(--danger-soft); color: var(--danger); }
+  .pill.today b { background: var(--accent-soft); color: var(--accent); }
+  .pill.tomorrow b { background: var(--warn-soft); color: var(--warn); }
+  details.group summary { list-style: none; font-size: 13px; font-weight: 600; color: var(--muted); min-height: 44px; display: flex; align-items: center; gap: 6px; }
+  details.group summary::-webkit-details-marker { display: none; }
+  details.group summary::after { content: "▸"; margin-left: auto; }
+  details.group[open] summary::after { content: "▾"; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0 8px; }
+  .empty svg.i { width: 40px; height: 40px; color: var(--accent); }
+  .band { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 600; }
+
+  /* ---- タブバー・スナックバー・シート ---- */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
+    height: calc(var(--tabbar) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+    background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+  }
+  .tabbar button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--muted); position: relative; }
+  .tabbar button[aria-selected="true"] { color: var(--accent); }
+  .badge { position: absolute; top: 6px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+  .snackbar {
+    position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 10px); z-index: 11;
+    max-width: 528px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 16px;
+    background: #2B2B28; color: #F5F4EF; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 15px;
+  }
+  .snackbar span { flex: 1; }
+  .snackbar button { border: 0; background: none; color: #8FD9C1; font-weight: 600; min-height: 44px; padding: 0 12px; }
+  dialog { border: 0; padding: 0; background: var(--surface); color: var(--text); width: min(560px, 100vw); max-height: 92dvh; }
   dialog::backdrop { background: rgba(0,0,0,.4); }
-  dialog label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
-  dialog h2 { font-size: 18px; margin: 0 0 4px; }
-  .note { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  dialog.sheet { margin: auto auto 0; border-radius: 20px 20px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+  .sheet-head h2 { font-size: 17px; margin: 0; }
+  textarea, input[type="url"], input[type="text"] { width: 100%; font: inherit; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  textarea { min-height: 120px; resize: vertical; }
+  input.masked { -webkit-text-security: disc; }
+  label.f { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 44px; }
+  .note { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .divider { border: 0; border-top: 1px solid var(--line); margin: 20px 0 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    #mic[data-state="rec"], .ring { animation: none; }
+  }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
 <header>
   <h1>SubBrain 記録</h1>
-  <button class="icon-btn" id="openSettings" type="button">設定</button>
+  <button class="icon-btn" id="openSettings" type="button" aria-label="設定"><svg class="i"><use href="#i-gear"/></svg></button>
 </header>
 
 <main>
-  <div id="status">ボタンを押して話してください</div>
+  <!-- 記録タブ -->
+  <section id="view-rec" role="tabpanel" aria-labelledby="tab-rec">
+    <div class="chips" id="summary" aria-label="今日の予定の件数"></div>
 
-  <button id="mic" type="button" aria-label="録音">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/>
-    </svg>
-    <span id="micLabel">話す</span>
-    <span id="timer" hidden>0:00</span>
-  </button>
+    <div class="rec-area">
+      <div id="status" role="status" aria-live="polite">ボタンを押して話してください</div>
+      <div class="mic-wrap">
+        <div class="ring" id="ring" hidden></div>
+        <button id="mic" type="button" data-state="idle" aria-label="録音を始める" aria-pressed="false">
+          <svg class="i" id="micIcon"><use href="#i-mic"/></svg>
+          <span id="micLabel">話す</span>
+          <span id="timer" hidden>0:00</span>
+        </button>
+      </div>
+      <div class="hint" id="hint"></div>
+      <button class="text-btn" id="openText" type="button"><svg class="i"><use href="#i-keyboard"/></svg>文字で入力</button>
+    </div>
 
-  <div class="row">
-    <button class="btn" id="retry" type="button" hidden>もう一度送る</button>
-  </div>
-
-  <section class="card" id="resultCard" hidden aria-live="polite">
-    <p class="transcript" id="transcript"></p>
-    <div id="results"></div>
+    <section class="card" id="resultCard" hidden aria-live="polite">
+      <div class="card-head">
+        <h2 id="resultTitle">記録しました</h2>
+        <button class="small-btn" id="undo" type="button" hidden>取り消す</button>
+      </div>
+      <p class="transcript" id="transcript"></p>
+      <div id="results"></div>
+      <div class="row" id="resultActions" hidden>
+        <button class="btn primary" id="retry" type="button" hidden>もう一度送る</button>
+        <button class="btn" id="retryText" type="button" hidden>失敗した分を文字で直して送る</button>
+      </div>
+    </section>
   </section>
 
-  <div class="row">
-    <button class="btn danger" id="undo" type="button" hidden>直前の記録を取り消す</button>
-  </div>
-
-  <details id="textBox">
-    <summary>文字で入力する</summary>
-    <textarea id="textInput" placeholder="例：明日までに諏訪のA様へ見積を送る"></textarea>
-    <button class="btn primary" id="sendText" type="button" style="width:100%">記録する</button>
-  </details>
-
-  <section class="card" id="tasksCard">
-    <div class="card-head">
-      <strong>今日のタスク</strong>
-      <button class="link-btn" id="loadTasks" type="button">表示する</button>
+  <!-- 予定タブ -->
+  <section id="view-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <div class="plan-head">
+      <h2>予定</h2>
+      <span class="updated"><span id="updatedAt"></span>
+        <button class="icon-btn" id="reloadTasks" type="button" aria-label="予定を更新"><svg class="i"><use href="#i-refresh"/></svg></button>
+      </span>
     </div>
-    <div id="tasksBody" class="tasks" hidden></div>
-  </section>
-
-  <section class="card" id="pushCard">
-    <div class="card-head">
-      <strong>朝の通知（毎朝8時台）</strong>
-      <span class="note" id="pushState"></span>
+    <div class="seg" role="group" aria-label="絞り込み">
+      <button type="button" data-filter="all" aria-pressed="true">すべて</button>
+      <button type="button" data-filter="仕事" aria-pressed="false">仕事</button>
+      <button type="button" data-filter="私生活" aria-pressed="false">私生活</button>
     </div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn primary" id="enablePush" type="button">朝の通知をオンにする</button>
-      <button class="btn" id="testPush" type="button" hidden>テスト通知</button>
-    </div>
-    <p class="note" id="pushNote"></p>
+    <div id="planBody"></div>
   </section>
 </main>
 
-<dialog id="settings">
-  <form method="dialog">
-    <h2>接続の設定</h2>
-    <p class="note">最初に一度だけ入力します。この端末の中にだけ保存されます。</p>
-    <label for="urlInput">Apps Script のURL（…/exec）</label>
-    <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
-    <label for="secretInput">合言葉（APP_SECRET）</label>
-    <input id="secretInput" class="masked" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-    <label style="display:flex;align-items:center;gap:6px;margin-top:8px"><input id="showSecret" type="checkbox" style="width:auto"> 合言葉を表示する</label>
-    <p class="note">日本語（ひらがな）の合言葉も入力できます。</p>
-    <p class="note" id="settingsStatus"></p>
-    <div class="row" style="margin-top:12px">
-      <button class="btn" id="testConn" type="button">接続テスト</button>
-      <button class="btn primary" id="saveSettings" type="submit">保存</button>
-    </div>
-  </form>
+<div class="snackbar" id="snackbar" role="status" hidden>
+  <span id="snackText"></span>
+  <button type="button" id="snackUndo">取り消す</button>
+</div>
+
+<nav class="tabbar" role="tablist">
+  <button type="button" role="tab" id="tab-rec" aria-selected="true" aria-controls="view-rec"><svg class="i"><use href="#i-mic"/></svg>記録</button>
+  <button type="button" role="tab" id="tab-plan" aria-selected="false" aria-controls="view-plan"><svg class="i"><use href="#i-calendar"/></svg>予定<span class="badge" id="badge" hidden></span></button>
+</nav>
+
+<dialog id="textSheet" class="sheet" aria-labelledby="textSheetTitle">
+  <div class="sheet-head">
+    <h2 id="textSheetTitle">文字で入力</h2>
+    <button class="icon-btn" type="button" data-close="textSheet" aria-label="閉じる"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <textarea id="textInput" placeholder="例：明日までに水上邸の見積を送る"></textarea>
+  <div class="row"><button class="btn primary" id="sendText" type="button">記録する</button></div>
+</dialog>
+
+<dialog id="settings" class="sheet" aria-labelledby="settingsTitle">
+  <div class="sheet-head">
+    <h2 id="settingsTitle">設定</h2>
+    <button class="icon-btn" type="button" data-close="settings" aria-label="閉じる"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="note">最初に一度だけ入力します。この端末の中にだけ保存されます。</p>
+  <label class="f" for="urlInput">Apps Script のURL（…/exec）</label>
+  <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+  <label class="f" for="secretInput">合言葉（APP_SECRET）</label>
+  <input id="secretInput" class="masked" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <label class="check"><input id="showSecret" type="checkbox"> 合言葉を表示する（ひらがなも入力できます）</label>
+  <p class="note" id="settingsStatus" role="status"></p>
+  <div class="row">
+    <button class="btn" id="testConn" type="button">接続テスト</button>
+    <button class="btn primary" id="saveSettings" type="button">保存</button>
+  </div>
+
+  <hr class="divider">
+  <div class="card-head"><h2>朝の通知（毎朝8時台）</h2><span class="note" id="pushState"></span></div>
+  <div class="row">
+    <button class="btn primary" id="enablePush" type="button">朝の通知をオンにする</button>
+    <button class="btn" id="testPush" type="button" hidden>テスト通知</button>
+  </div>
+  <p class="note" id="pushNote" role="status"></p>
 </dialog>
 
 <script>
 (() => {
   const MAX_SECONDS = 120;
+  const FETCH_TIMEOUT_MS = 60000;
   const LABELS = { task: 'タスク', idea: '思いつき', learning: '学び', work: '仕事', content: '発信', inbox: '受信箱' };
+  const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
   const $ = (id) => document.getElementById(id);
-  const mic = $('mic'), micLabel = $('micLabel'), timer = $('timer'), statusEl = $('status');
+  const mic = $('mic'), statusEl = $('status');
 
+  // ---------- 保存 ----------
   const store = {
     get(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } },
-    set(key, value) { try { localStorage.setItem(key, value); } catch {} idbSet(key, value); },
+    set(key, value) { try { localStorage.setItem(key, value); } catch {} if (key === 'gasUrl' || key === 'appSecret') idbSet(key, value); },
   };
-
   // 通知を受けたとき sw.js がタスクを取りに行けるよう、接続先を IndexedDB にも置く
   function idbSet(key, value) {
     try {
       const req = indexedDB.open('subbrain', 1);
       req.onupgradeneeded = () => req.result.createObjectStore('kv');
-      req.onsuccess = () => { const tx = req.result.transaction('kv', 'readwrite'); tx.objectStore('kv').put(value, key); };
+      req.onsuccess = () => { req.result.transaction('kv', 'readwrite').objectStore('kv').put(value, key); };
     } catch {}
   }
   const settings = () => ({ url: store.get('gasUrl'), secret: store.get('appSecret') });
-
-  let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, lastPayload = null, busy = false;
-
-  function setStatus(text) { statusEl.textContent = text; }
+  const configured = () => !!(settings().url && settings().secret);
 
   async function call(body) {
     const { url, secret } = settings();
     if (!url || !secret) { openSettings(); throw new Error('先に接続の設定をしてください。'); }
-    // Content-Type を付けない（text/plain 扱い）ことで、Apps Script への事前確認通信を避ける
-    const res = await fetch(url, { method: 'POST', body: JSON.stringify(Object.assign({ app: true, secret }, body)), redirect: 'follow' });
-    const text = await res.text();
-    try { return JSON.parse(text); } catch { throw new Error('サーバーの応答を読めませんでした（URLを確認してください）。'); }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      // Content-Type を付けない（text/plain 扱い）ことで、Apps Script への事前確認通信を避ける
+      const res = await fetch(url, { method: 'POST', body: JSON.stringify(Object.assign({ app: true, secret }, body)), redirect: 'follow', signal: controller.signal });
+      const text = await res.text();
+      try { return JSON.parse(text); } catch { throw new Error('サーバーの応答を読めませんでした（URLを確認してください）。'); }
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('時間切れになりました。予定タブで記録されたか確かめてから送り直してください。');
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  // ---------- タブ ----------
+  function showTab(name) {
+    const plan = name === 'plan';
+    $('view-rec').hidden = plan;
+    $('view-plan').hidden = !plan;
+    $('tab-rec').setAttribute('aria-selected', String(!plan));
+    $('tab-plan').setAttribute('aria-selected', String(plan));
+    if (plan) loadTasks();
+    window.scrollTo(0, 0);
+  }
+  $('tab-rec').addEventListener('click', () => showTab('rec'));
+  $('tab-plan').addEventListener('click', () => showTab('plan'));
+
+  // ---------- 録音 ----------
+  let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, stageTimer = null, lastPayload = null, busy = false;
+
+  function setMic(state) {
+    mic.dataset.state = state;
+    const icon = { idle: 'i-mic', rec: 'i-stop', sending: 'i-mic', done: 'i-check', error: 'i-alert' }[state];
+    $('micIcon').innerHTML = '<use href="#' + icon + '"/>';
+    $('micLabel').textContent = { idle: '話す', rec: '止めて送る', sending: '送信中', done: '記録しました', error: 'もう一度' }[state];
+    $('timer').hidden = state !== 'rec';
+    $('ring').hidden = state !== 'sending';
+    mic.setAttribute('aria-pressed', String(state === 'rec'));
+    mic.setAttribute('aria-busy', String(state === 'sending'));
+    mic.setAttribute('aria-label', { idle: '録音を始める', rec: '録音を止めて送る', sending: '送信中', done: '記録しました', error: '録音を始める' }[state]);
+    $('hint').textContent = state === 'rec' ? 'もう一度押すと止めて記録します（最長2分）' : '';
   }
 
   function pickMime() {
@@ -198,47 +353,57 @@
   }
 
   async function startRecording() {
-    if (!settings().url) { openSettings(); return; }
+    if (!configured()) { openSettings(); return; }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = pickMime();
+      recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     } catch {
-      setStatus('マイクを使えません。設定でマイクを許可してください。');
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      setStatus('マイクを使えません。iPhoneの設定でマイクを許可してください。');
       return;
     }
-    const mime = pickMime();
-    recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     chunks = [];
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = onRecordingStop;
     recorder.start();
     startedAt = Date.now();
-    mic.classList.add('recording');
-    micLabel.textContent = '止めて記録';
-    timer.hidden = false;
-    timer.textContent = '0:00';
+    setMic('rec');
+    $('timer').textContent = '0:00';
     setStatus('聞いています…');
     tick = setInterval(() => {
       const s = Math.floor((Date.now() - startedAt) / 1000);
-      timer.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      $('timer').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       if (s >= MAX_SECONDS) stopRecording();
     }, 250);
   }
 
   function stopRecording() {
-    if (recorder && recorder.state === 'recording') recorder.stop();
     clearInterval(tick);
-    mic.classList.remove('recording');
-    micLabel.textContent = '話す';
-    timer.hidden = true;
+    if (recorder && recorder.state === 'recording') {
+      busy = true; // 送り終わるまで次の録音を始めない
+      recorder.stop();
+    }
   }
 
   async function onRecordingStop() {
     stream.getTracks().forEach((t) => t.stop());
-    const type = (recorder.mimeType || chunks[0]?.type || 'audio/mp4');
+    const type = recorder.mimeType || (chunks[0] && chunks[0].type) || 'audio/mp4';
     const blob = new Blob(chunks, { type });
-    if (Date.now() - startedAt < 700 || blob.size < 1000) { setStatus('短すぎました。もう一度押して話してください。'); return; }
-    const audio_base64 = await blobToBase64(blob);
-    await send({ action: 'record', audio_base64, mime_type: type });
+    if (Date.now() - startedAt < 700 || blob.size < 1000) {
+      busy = false;
+      setMic('idle');
+      setStatus('短すぎました。もう一度押して話してください。');
+      return;
+    }
+    try {
+      const audio_base64 = await blobToBase64(blob);
+      await send({ action: 'record', audio_base64, mime_type: type });
+    } catch (err) {
+      busy = false;
+      setMic('error');
+      setStatus('録音を読み取れませんでした：' + err.message);
+    }
   }
 
   function blobToBase64(blob) {
@@ -250,98 +415,285 @@
     });
   }
 
+  // ---------- 送信と結果 ----------
+  function startStages(isText) {
+    const t0 = Date.now();
+    const stage = () => {
+      const s = (Date.now() - t0) / 1000;
+      setStatus(s > 25 ? '時間がかかっています…' : isText ? (s < 2 ? '送っています…' : '振り分けています…')
+        : s < 2 ? '送っています…' : s < 7 ? '文字にしています…' : '振り分けています…');
+    };
+    stage();
+    stageTimer = setInterval(stage, 500);
+  }
+
   async function send(payload) {
     lastPayload = payload;
     busy = true;
-    mic.disabled = true;
-    $('retry').hidden = true;
-    setStatus(payload.text ? '記録しています…' : '文字にして振り分けています…');
+    setMic('sending');
+    $('resultActions').hidden = true;
+    startStages(!!payload.text);
+    let data;
     try {
-      const data = await call(payload);
-      showResult(data);
-      if (data.ok) { lastPayload = null; $('textInput').value = ''; }
-      else if (data.error === 'request_failed' || data.error === 'unauthorized') $('retry').hidden = false;
+      data = await call(payload);
     } catch (err) {
-      setStatus('送れませんでした：' + (err.message || '通信エラー'));
-      $('retry').hidden = !lastPayload;
-    } finally {
+      clearInterval(stageTimer);
       busy = false;
-      mic.disabled = false;
+      setMic('error');
+      setStatus('送れませんでした：' + (err.message || '通信エラー'));
+      showActions({ retry: true });
+      return;
     }
+    clearInterval(stageTimer);
+    busy = false;
+    showResult(data, payload);
   }
 
-  function showResult(data) {
+  function showActions({ retry = false, retryText = false }) {
+    $('retry').hidden = !retry;
+    $('retryText').hidden = !retryText;
+    $('resultActions').hidden = !(retry || retryText);
+    if (retry || retryText) $('resultCard').hidden = false;
+  }
+
+  function showResult(data, payload) {
+    const results = data.results || [];
     const list = $('results');
     list.textContent = '';
     $('transcript').textContent = data.transcript ? '「' + data.transcript + '」' : '';
-    (data.results || []).forEach((r) => {
+    results.forEach((r) => {
       const div = document.createElement('div');
       div.className = 'result' + (r.ok ? '' : ' ng');
-      const chip = document.createElement('span');
-      chip.className = 'chip ' + r.category;
-      chip.textContent = LABELS[r.category] || r.category;
-      const where = document.createElement('span');
-      where.className = 'where';
-      where.textContent = r.ok
-        ? (r.duplicate ? '保存済み（重複のためスキップ）' : (r.path || '') + (r.section ? '「' + r.section + '」' : ''))
-        : '保存できませんでした';
+      const cat = document.createElement('span');
+      cat.className = 'cat c-' + r.category;
+      cat.textContent = LABELS[r.category] || r.category;
+      const body = document.createElement('div');
       const what = document.createElement('div');
       what.className = 'what';
-      what.textContent = r.ok ? r.content : r.content + ' — ' + r.message;
-      div.append(chip, where, what);
+      what.textContent = r.content;
+      const where = document.createElement('div');
+      where.className = 'where';
+      where.textContent = r.ok
+        ? (r.duplicate ? '保存済みのため、重ねて記録しませんでした' : (r.path || '') + (r.section ? '「' + r.section + '」' : ''))
+        : '保存できませんでした：' + r.message;
+      body.append(what, where);
+      div.append(cat, body);
       list.append(div);
     });
-    $('resultCard').hidden = !(data.transcript || (data.results || []).length);
-    const saved = (data.results || []).filter((r) => r.ok && !r.duplicate).length;
-    setStatus(data.ok ? (saved ? saved + '件 記録しました' : '新しく記録したものはありません') : (data.message || '記録できませんでした'));
+
+    const saved = results.filter((r) => r.ok && !r.duplicate).length;
+    const failed = results.filter((r) => !r.ok);
+    $('resultTitle').textContent = saved ? saved + '件 記録しました' : (data.ok ? '新しく記録したものはありません' : '記録できませんでした');
+    $('resultCard').hidden = !(data.transcript || results.length || !data.ok);
     $('undo').hidden = !data.undo_available;
+
+    if (data.ok) {
+      setMic('done');
+      setStatus(saved ? saved + '件 記録しました' : '新しく記録したものはありません');
+      setTimeout(() => { if (mic.dataset.state === 'done') { setMic('idle'); setStatus('ボタンを押して話してください'); } }, 1600);
+      if (payload.text && !failed.length) $('textInput').value = '';
+      if (saved) showSnack(saved + '件 記録しました');
+      if (results.some((r) => r.ok && r.category === 'task')) loadTasks(true);
+      lastPayload = failed.length ? lastPayload : null;
+      showActions({ retryText: failed.length > 0 });
+      window._failed = failed;
+    } else {
+      setMic('error');
+      setStatus(data.message || '記録できませんでした');
+      // 全部失敗したときだけ、同じ内容をそのまま送り直せる
+      showActions({ retry: data.error !== 'empty' && data.error !== 'nothing_to_record', retryText: failed.length > 0 });
+      window._failed = failed;
+    }
+  }
+
+  // ---------- 取り消し（スナックバーと結果カード） ----------
+  let snackTimer = null;
+  function showSnack(text) {
+    $('snackText').textContent = text;
+    $('snackbar').hidden = false;
+    clearTimeout(snackTimer);
+    snackTimer = setTimeout(() => { $('snackbar').hidden = true; }, 8000);
   }
 
   async function undo() {
-    if (busy || !confirm('直前の記録を取り消しますか？')) return;
+    if (busy) return;
     busy = true;
+    $('snackbar').hidden = true;
     $('undo').disabled = true;
     setStatus('取り消しています…');
     try {
       const data = await call({ action: 'undo' });
       setStatus(data.message || (data.ok ? '取り消しました' : '取り消せませんでした'));
-      if (data.ok || data.error === 'no_undo') { $('undo').hidden = true; $('resultCard').hidden = true; }
+      if (data.ok || data.error === 'no_undo') { $('undo').hidden = true; $('resultCard').hidden = true; loadTasks(true); }
     } catch (err) {
       setStatus('取り消せませんでした：' + err.message);
     } finally {
       busy = false;
       $('undo').disabled = false;
+      setMic('idle');
     }
   }
+
+  // ---------- 予定 ----------
+  function localToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dayDiff(due, today) {
+    const [y1, m1, d1] = due.split('-').map(Number);
+    const [y2, m2, d2] = today.split('-').map(Number);
+    return Math.round((Date.UTC(y1, m1 - 1, d1) - Date.UTC(y2, m2 - 1, d2)) / 86400000);
+  }
+  function relLabel(diff) {
+    if (diff < 0) return { text: -diff + '日超過', cls: 'over' };
+    if (diff === 0) return { text: '今日', cls: 'today' };
+    if (diff === 1) return { text: '明日', cls: 'tomorrow' };
+    return { text: diff + '日後', cls: '' };
+  }
+  function mdw(due) {
+    const [y, m, d] = due.split('-').map(Number);
+    return m + '/' + d + '(' + WEEK[new Date(y, m - 1, d).getDay()] + ')';
+  }
+  function esc(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+  // サーバーの区分け（期限切れ・今日・7日以内・期限なし）を、端末の今日の日付で並べ直す
+  function groupTasks(data, filterOverride) {
+    const today = localToday();
+    const filter = filterOverride || store.get('taskFilter') || 'all';
+    const all = [].concat(data.overdue, data.today, data.soon, data.nodate)
+      .filter((t) => filter === 'all' || t.section === filter);
+    const g = { overdue: [], today: [], tomorrow: [], week: [], nodate: [] };
+    all.forEach((t) => {
+      if (!t.due) { g.nodate.push(t); return; }
+      const diff = dayDiff(t.due, today);
+      t.diff = diff;
+      if (diff < 0) g.overdue.push(t);
+      else if (diff === 0) g.today.push(t);
+      else if (diff === 1) g.tomorrow.push(t);
+      else g.week.push(t);
+    });
+    Object.values(g).forEach((list) => list.sort((a, b) => (a.due || '').localeCompare(b.due || '')));
+    return g;
+  }
+
+  function taskRows(items) {
+    return '<ul class="tasks">' + items.map((t) => {
+      const pill = t.due ? relLabel(t.diff) : null;
+      return '<li class="task" data-sec="' + esc(t.section || '') + '"><div class="body"><div class="t">' + esc(t.text) + '</div>'
+        + '<div class="s">' + esc(t.section || '') + '</div></div>'
+        + (pill ? '<div class="pill ' + pill.cls + '"><b>' + pill.text + '</b><small>' + mdw(t.due) + '</small></div>' : '')
+        + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function renderPlan(data, at) {
+    const g = groupTasks(data);
+    const block = (key, title) => g[key].length
+      ? '<section class="group ' + key + '"><h3>' + title + '<span class="n">' + g[key].length + '件</span></h3>' + taskRows(g[key]) + '</section>' : '';
+    let html = block('overdue', '期限切れ') + block('today', '今日') + block('tomorrow', '明日') + block('week', '今週（2〜7日後）');
+    if (!g.overdue.length && !g.today.length) {
+      html = '<div class="empty"><svg class="i"><use href="#i-check"/></svg><div>今日やることはありません</div></div>' + html;
+    }
+    if (g.nodate.length) {
+      html += '<details class="group"><summary>期限なし ' + g.nodate.length + '件</summary>' + taskRows(g.nodate) + '</details>';
+    }
+    if (data.inbox_count) html += '<div class="band"><span>受信箱の未整理</span><span>' + data.inbox_count + '件</span></div>';
+    $('planBody').innerHTML = html;
+    $('updatedAt').textContent = at ? new Date(at).toLocaleTimeString('ja-JP', { hour: 'numeric', minute: '2-digit' }) + ' 更新' : '';
+    renderSummary(data);
+  }
+
+  function renderSummary(data) {
+    const g = groupTasks(data, 'all'); // 記録タブの件数と通知バッジは絞り込みに関係なく全件
+    const chips = [];
+    if (g.overdue.length) chips.push('<button class="chip-btn danger" type="button">期限切れ ' + g.overdue.length + '</button>');
+    chips.push('<button class="chip-btn today" type="button">今日 ' + g.today.length + '</button>');
+    if (g.tomorrow.length) chips.push('<button class="chip-btn" type="button">明日 ' + g.tomorrow.length + '</button>');
+    $('summary').innerHTML = chips.join('');
+    $('summary').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => showTab('plan')));
+    const urgent = g.overdue.length + g.today.length;
+    $('badge').hidden = !urgent;
+    $('badge').textContent = urgent;
+    if ('setAppBadge' in navigator) (urgent ? navigator.setAppBadge(urgent) : navigator.clearAppBadge()).catch(() => {});
+  }
+
+  function cachedTasks() {
+    try { return JSON.parse(store.get('tasksCache') || 'null'); } catch { return null; }
+  }
+
+  let loading = false, lastLoad = 0;
+  async function loadTasks(force) {
+    if (!configured() || loading) return;
+    if (!force && Date.now() - lastLoad < 60000) return;
+    loading = true;
+    $('reloadTasks').disabled = true;
+    try {
+      const data = await call({ action: 'tasks' });
+      if (data.ok) {
+        const at = Date.now();
+        store.set('tasksCache', JSON.stringify({ data, at }));
+        lastLoad = at;
+        renderPlan(data, at);
+      } else if (!cachedTasks()) {
+        $('planBody').innerHTML = '<p class="note">' + esc(data.message || '読み込めませんでした') + '</p>';
+      }
+    } catch (err) {
+      if (!cachedTasks()) $('planBody').innerHTML = '<p class="note">読み込めませんでした：' + esc(err.message) + '</p>';
+    } finally {
+      loading = false;
+      $('reloadTasks').disabled = false;
+    }
+  }
+  $('reloadTasks').addEventListener('click', () => loadTasks(true));
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    store.set('taskFilter', b.dataset.filter);
+    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const c = cachedTasks();
+    if (c) renderPlan(c.data, c.at);
+  }));
+
+  // ---------- 文字入力・設定 ----------
+  function openSheet(id) { $(id).showModal(); }
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => $(b.dataset.close).close()));
+  document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+
+  $('openText').addEventListener('click', () => { openSheet('textSheet'); setTimeout(() => $('textInput').focus(), 50); });
+  $('sendText').addEventListener('click', () => {
+    const text = $('textInput').value.trim();
+    if (!text || busy) return;
+    $('textSheet').close();
+    showTab('rec');
+    send({ action: 'record', text });
+  });
+  $('retry').addEventListener('click', () => { if (lastPayload && !busy) send(lastPayload); });
+  $('retryText').addEventListener('click', () => {
+    $('textInput').value = (window._failed || []).map((r) => r.content).join('\n');
+    openSheet('textSheet');
+  });
+  $('undo').addEventListener('click', undo);
+  $('snackUndo').addEventListener('click', undo);
 
   function openSettings() {
     const s = settings();
     $('urlInput').value = s.url;
     $('secretInput').value = s.secret;
     $('settingsStatus').textContent = '';
-    $('settings').showModal();
+    openSheet('settings');
+    refreshPushState();
   }
-
-  mic.addEventListener('click', () => {
-    if (busy) return;
-    if (recorder && recorder.state === 'recording') stopRecording();
-    else startRecording();
-  });
-  $('retry').addEventListener('click', () => { if (lastPayload && !busy) send(lastPayload); });
-  $('undo').addEventListener('click', undo);
-  $('sendText').addEventListener('click', () => {
-    const text = $('textInput').value.trim();
-    if (text && !busy) send({ action: 'record', text });
-  });
-  $('openSettings').addEventListener('click', openSettings);
-  $('saveSettings').addEventListener('click', () => {
+  function saveConnection() {
     store.set('gasUrl', $('urlInput').value.trim());
     store.set('appSecret', $('secretInput').value.trim().normalize('NFC'));
+  }
+  $('openSettings').addEventListener('click', openSettings);
+  $('saveSettings').addEventListener('click', () => {
+    saveConnection();
+    $('settings').close();
+    if (configured()) { setStatus('ボタンを押して話してください'); loadTasks(true); checkHealth(); }
   });
   $('showSecret').addEventListener('change', (e) => { $('secretInput').classList.toggle('masked', !e.target.checked); });
   $('testConn').addEventListener('click', async () => {
-    store.set('gasUrl', $('urlInput').value.trim());
-    store.set('appSecret', $('secretInput').value.trim().normalize('NFC'));
+    saveConnection();
     $('settingsStatus').textContent = '確認しています…';
     try {
       const data = await call({ action: 'health' });
@@ -351,34 +703,6 @@
       $('settingsStatus').textContent = '接続できません：' + err.message;
     }
   });
-
-  // ---------- 今日のタスク ----------
-  function taskList(title, items, cls) {
-    if (!items.length) return '';
-    const li = items.map((t) => '<li class="' + (cls || '') + '">' + esc(t.text)
-      + (t.due ? '<span class="due">' + t.due.slice(5).replace('-', '/') + '</span>' : '')
-      + (t.section ? '<span class="due">' + esc(t.section) + '</span>' : '') + '</li>').join('');
-    return '<h3>' + title + '（' + items.length + '件）</h3><ul>' + li + '</ul>';
-  }
-  function esc(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
-
-  async function loadTasks() {
-    const body = $('tasksBody');
-    body.hidden = false;
-    body.textContent = '読み込んでいます…';
-    try {
-      const d = await call({ action: 'tasks' });
-      if (!d.ok) { body.textContent = d.message || '読み込めませんでした'; return; }
-      const html = taskList('期限切れ', d.overdue, 'overdue') + taskList('今日', d.today) + taskList('7日以内', d.soon)
-        + taskList('期限なし', d.nodate);
-      body.innerHTML = (html || '<p class="note">未完了のタスクはありません。</p>')
-        + (d.inbox_count ? '<p class="note">受信箱の未整理：' + d.inbox_count + '件</p>' : '');
-      $('loadTasks').textContent = '更新';
-    } catch (err) {
-      body.textContent = '読み込めませんでした：' + err.message;
-    }
-  }
-  $('loadTasks').addEventListener('click', loadTasks);
 
   // ---------- 朝の通知 ----------
   function b64urlToUint8(text) {
@@ -430,17 +754,43 @@
     }
   });
 
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.view === 'tasks') loadTasks(); });
+  // ---------- 起動時 ----------
+  async function checkHealth() {
+    try {
+      const data = await call({ action: 'health' });
+      if (data.ok && data.undo_available) $('undo').hidden = false;
+    } catch {}
   }
+
+  mic.addEventListener('click', () => {
+    if (recorder && recorder.state === 'recording') { stopRecording(); return; }
+    if (busy) return;
+    startRecording();
+  });
+
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.view === 'tasks') showTab('plan'); });
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadTasks(); });
+
   const { url: savedUrl, secret: savedSecret } = settings();
   if (savedUrl) { idbSet('gasUrl', savedUrl); idbSet('appSecret', savedSecret); }
-  if (new URLSearchParams(location.search).get('view') === 'tasks' && savedUrl) loadTasks();
+  const cache = cachedTasks();
+  if (cache) renderPlan(cache.data, cache.at);
+  else $('planBody').innerHTML = '<p class="note">読み込んでいます…</p>';
 
   if (!window.MediaRecorder) setStatus('このブラウザは録音に対応していません。文字で入力してください。');
-  if (!settings().url) setStatus('右上の「設定」から接続先を入れてください');
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(refreshPushState).catch(() => {});
-  else refreshPushState();
+  if (!configured()) {
+    setStatus('右上の歯車から接続先を入れてください');
+  } else {
+    loadTasks(true);
+    checkHealth();
+  }
+  if (new URLSearchParams(location.search).get('view') === 'tasks') showTab('plan');
+  const filter = store.get('taskFilter') || 'all';
+  document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === filter)));
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
 </body>
