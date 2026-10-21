@@ -68,6 +68,13 @@
   textarea, input { width: 100%; font-size: 16px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: inherit; }
   textarea { min-height: 96px; margin-bottom: 8px; }
   input.masked { -webkit-text-security: disc; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .link-btn { background: none; border: 0; color: var(--accent); font-size: 15px; padding: 4px 0; }
+  .tasks h3 { font-size: 14px; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
+  .tasks ul { margin: 0; padding-left: 1.2em; }
+  .tasks li { font-size: 15px; line-height: 1.6; }
+  .tasks .due { color: var(--muted); font-size: 13px; margin-left: 4px; }
+  .tasks .overdue { color: var(--ng); }
   dialog { border: 0; border-radius: 16px; padding: 20px; width: min(480px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
   dialog::backdrop { background: rgba(0,0,0,.4); }
   dialog label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
@@ -110,6 +117,26 @@
     <textarea id="textInput" placeholder="例：明日までに諏訪のA様へ見積を送る"></textarea>
     <button class="btn primary" id="sendText" type="button" style="width:100%">記録する</button>
   </details>
+
+  <section class="card" id="tasksCard">
+    <div class="card-head">
+      <strong>今日のタスク</strong>
+      <button class="link-btn" id="loadTasks" type="button">表示する</button>
+    </div>
+    <div id="tasksBody" class="tasks" hidden></div>
+  </section>
+
+  <section class="card" id="pushCard">
+    <div class="card-head">
+      <strong>朝の通知（毎朝8時台）</strong>
+      <span class="note" id="pushState"></span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="enablePush" type="button">朝の通知をオンにする</button>
+      <button class="btn" id="testPush" type="button" hidden>テスト通知</button>
+    </div>
+    <p class="note" id="pushNote"></p>
+  </section>
 </main>
 
 <dialog id="settings">
@@ -139,8 +166,17 @@
 
   const store = {
     get(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } },
-    set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+    set(key, value) { try { localStorage.setItem(key, value); } catch {} idbSet(key, value); },
   };
+
+  // 通知を受けたとき sw.js がタスクを取りに行けるよう、接続先を IndexedDB にも置く
+  function idbSet(key, value) {
+    try {
+      const req = indexedDB.open('subbrain', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => { const tx = req.result.transaction('kv', 'readwrite'); tx.objectStore('kv').put(value, key); };
+    } catch {}
+  }
   const settings = () => ({ url: store.get('gasUrl'), secret: store.get('appSecret') });
 
   let recorder = null, chunks = [], stream = null, startedAt = 0, tick = null, lastPayload = null, busy = false;
@@ -316,9 +352,95 @@
     }
   });
 
+  // ---------- 今日のタスク ----------
+  function taskList(title, items, cls) {
+    if (!items.length) return '';
+    const li = items.map((t) => '<li class="' + (cls || '') + '">' + esc(t.text)
+      + (t.due ? '<span class="due">' + t.due.slice(5).replace('-', '/') + '</span>' : '')
+      + (t.section ? '<span class="due">' + esc(t.section) + '</span>' : '') + '</li>').join('');
+    return '<h3>' + title + '（' + items.length + '件）</h3><ul>' + li + '</ul>';
+  }
+  function esc(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+  async function loadTasks() {
+    const body = $('tasksBody');
+    body.hidden = false;
+    body.textContent = '読み込んでいます…';
+    try {
+      const d = await call({ action: 'tasks' });
+      if (!d.ok) { body.textContent = d.message || '読み込めませんでした'; return; }
+      const html = taskList('期限切れ', d.overdue, 'overdue') + taskList('今日', d.today) + taskList('7日以内', d.soon)
+        + taskList('期限なし', d.nodate);
+      body.innerHTML = (html || '<p class="note">未完了のタスクはありません。</p>')
+        + (d.inbox_count ? '<p class="note">受信箱の未整理：' + d.inbox_count + '件</p>' : '');
+      $('loadTasks').textContent = '更新';
+    } catch (err) {
+      body.textContent = '読み込めませんでした：' + err.message;
+    }
+  }
+  $('loadTasks').addEventListener('click', loadTasks);
+
+  // ---------- 朝の通知 ----------
+  function b64urlToUint8(text) {
+    const b64 = (text + '==='.slice((text.length + 3) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  }
+  const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+  async function refreshPushState() {
+    if (!pushSupported()) {
+      $('pushState').textContent = '';
+      $('enablePush').disabled = true;
+      $('pushNote').textContent = 'iPhoneでは、ホーム画面の「記録」アイコンから開いたときだけ使えます（iOS 16.4以降）。';
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    $('pushState').textContent = sub && Notification.permission === 'granted' ? 'オン' : 'オフ';
+    $('enablePush').textContent = sub ? '登録し直す' : '朝の通知をオンにする';
+    $('testPush').hidden = !sub;
+  }
+
+  $('enablePush').addEventListener('click', async () => {
+    $('pushNote').textContent = '登録しています…';
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { $('pushNote').textContent = '通知が許可されませんでした。iPhoneの設定 →「通知」→「記録」で許可してください。'; return; }
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await call({ action: 'push_key' });
+      if (!keyRes.ok) throw new Error(keyRes.message || '鍵を受け取れませんでした');
+      const old = await reg.pushManager.getSubscription();
+      if (old) await old.unsubscribe();
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToUint8(keyRes.key) });
+      const res = await call({ action: 'push_subscribe', subscription: sub.toJSON() });
+      $('pushNote').textContent = res.ok ? '登録しました。明日の朝8時台から届きます。' : (res.message || '登録できませんでした');
+    } catch (err) {
+      $('pushNote').textContent = '登録できませんでした：' + err.message;
+    }
+    refreshPushState();
+  });
+
+  $('testPush').addEventListener('click', async () => {
+    $('pushNote').textContent = 'テスト通知を送っています…';
+    try {
+      const res = await call({ action: 'push_test' });
+      $('pushNote').textContent = res.ok ? '送りました。数秒〜数十秒で届きます。' : (res.message || '送れませんでした') + (res.failed ? '（' + res.failed.join(' / ') + '）' : '');
+    } catch (err) {
+      $('pushNote').textContent = '送れませんでした：' + err.message;
+    }
+  });
+
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.view === 'tasks') loadTasks(); });
+  }
+  const { url: savedUrl, secret: savedSecret } = settings();
+  if (savedUrl) { idbSet('gasUrl', savedUrl); idbSet('appSecret', savedSecret); }
+  if (new URLSearchParams(location.search).get('view') === 'tasks' && savedUrl) loadTasks();
+
   if (!window.MediaRecorder) setStatus('このブラウザは録音に対応していません。文字で入力してください。');
   if (!settings().url) setStatus('右上の「設定」から接続先を入れてください');
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(refreshPushState).catch(() => {});
+  else refreshPushState();
 })();
 </script>
 </body>
