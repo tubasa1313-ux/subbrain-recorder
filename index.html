@@ -731,9 +731,12 @@
       const data = await call({ action: 'tasks' });
       if (data.ok) {
         const at = Date.now();
+        const unchanged = JSON.stringify((cachedTasks() || {}).data) === JSON.stringify(data);
         store.set('tasksCache', JSON.stringify({ data, at }));
         lastLoad = at;
-        renderPlan(data, at);
+        // 自動更新のとき、中身が同じなら描き直さない（開いているシートや表示が揺れないように）
+        if (!unchanged || force === true) renderPlan(data, at);
+        else $('updatedAt').textContent = new Date(at).toLocaleTimeString('ja-JP', { hour: 'numeric', minute: '2-digit' }) + ' 更新';
       } else if (!cachedTasks()) {
         $('planBody').innerHTML = '<p class="note">' + esc(data.message || '読み込めませんでした') + '</p>';
       }
@@ -957,6 +960,9 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadTasks(); flushPending(); } });
   window.addEventListener('online', flushPending);
+  // 開いたままでも、PC・スマホ・Obsidian での完了や追加が反映されるよう、見えている間は1分ごとに読み直す
+  window.addEventListener('focus', () => loadTasks());
+  setInterval(() => { if (document.visibilityState === 'visible' && !busy && !document.querySelector('dialog[open]')) loadTasks(); }, 60000);
 
   const { url: savedUrl, secret: savedSecret } = settings();
   if (savedUrl) { idbSet('gasUrl', savedUrl); idbSet('appSecret', savedSecret); }
