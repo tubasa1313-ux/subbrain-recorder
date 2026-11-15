@@ -74,6 +74,8 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #timer { font-size: 20px; font-variant-numeric: tabular-nums; font-weight: 600; }
   .hint { color: var(--muted); font-size: 13px; min-height: 1.5em; text-align: center; }
+  .mode-seg { width: 100%; max-width: 360px; margin: 0; }
+  .mode-seg button[data-mode="task"][aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
   .text-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0 16px; height: 44px; font-size: 15px; }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); margin-top: 16px; }
@@ -100,42 +102,71 @@
   .seg { display: flex; background: var(--surface-2); border-radius: 12px; padding: 3px; margin: 12px 0 4px; }
   .seg button { flex: 1; border: 0; background: none; height: 38px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); }
   .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
-  .group { margin-top: 18px; }
-  .group h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 6px; display: flex; gap: 6px; align-items: baseline; }
-  .group h3 .n { font-weight: 400; }
-  .group.overdue h3 { color: var(--danger); }
-  .tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
-  .task { display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 0; border-top: 1px solid var(--line); min-height: 56px; }
+  #filterSeg button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; }
+  #filterSeg .cnt { font-size: 12px; font-weight: 600; min-width: 22px; padding: 0 6px; border-radius: 999px; line-height: 20px; background: color-mix(in srgb, var(--muted) 16%, transparent); font-variant-numeric: tabular-nums; }
+  #filterSeg button[aria-pressed="true"] .cnt { background: var(--accent-soft); color: var(--accent); }
+  #filterSeg button[data-filter="仕事"][aria-pressed="true"] .cnt { background: var(--work-soft); color: var(--work); }
+  #filterSeg button[data-filter="私生活"][aria-pressed="true"] .cnt { background: var(--private-soft); color: var(--private); }
+  .plan-cols { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 24px; align-items: start; }
+  .group { margin-top: 20px; }
+  .group-h { font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 8px; display: flex; gap: 8px; align-items: center; min-height: 28px; }
+  .group-h svg.i { width: 18px; height: 18px; }
+  .group-h .n { font-size: 12px; font-weight: 600; min-width: 22px; padding: 0 7px; line-height: 20px; border-radius: 999px; text-align: center; background: var(--surface-2); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .group.overdue .group-h { color: var(--danger); }
+  .group.overdue .group-h .n { background: var(--danger-soft); color: var(--danger); }
+  .group.today .group-h { color: var(--accent); }
+  .group.today .group-h .n { background: var(--accent-soft); color: var(--accent); }
+  .tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .group.overdue .tasks { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+  .task { display: flex; align-items: center; gap: 2px; padding: 0 12px 0 4px; border-top: 1px solid var(--line); min-height: 52px; }
   .task:first-child { border-top: 0; }
-  .task::before { content: ""; align-self: stretch; width: 4px; border-radius: 0 4px 4px 0; background: var(--work); flex: none; }
-  .task[data-sec="私生活"]::before { background: var(--private); }
-  .task .body { flex: 1; min-width: 0; }
-  .task .t { font-size: 16px; word-break: break-word; }
-  .task .s { font-size: 12px; color: var(--muted); }
-  .pill { flex: none; text-align: right; }
-  .pill b { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); }
-  .pill small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .pill.over b { background: var(--danger-soft); color: var(--danger); }
-  .pill.today b { background: var(--accent-soft); color: var(--accent); }
-  .pill.tomorrow b { background: var(--warn-soft); color: var(--warn); }
-  details.group summary { list-style: none; font-size: 13px; font-weight: 600; color: var(--muted); min-height: 44px; display: flex; align-items: center; gap: 6px; }
+  .task .body { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; padding: 10px 0 10px 4px; border-radius: 8px; }
+  .task .t { font-size: 16px; line-height: 1.45; word-break: break-word; }
+  .task .m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; font-size: 13px; color: var(--muted); }
+  .task .m:empty { display: none; }
+  .due { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .due.over { color: var(--danger); }
+  .due.today { color: var(--accent); }
+  .due.tomorrow { color: var(--warn); }
+  .tag { font-size: 12px; font-weight: 600; padding: 0 8px; line-height: 20px; border-radius: 999px; background: var(--work-soft); color: var(--work); }
+  .tag.private { background: var(--private-soft); color: var(--private); }
+  @media (hover: hover) {
+    .task:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+    .task .done-btn:hover span { border-color: var(--accent); color: var(--accent); }
+    .task .done-btn:hover svg.i { opacity: .55; }
+  }
+  .task .body:focus-visible, .task .done-btn:focus-visible, details.group summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  details.group summary { list-style: none; cursor: pointer; min-height: 44px; margin: -8px 0 0; border-radius: 8px; }
   details.group summary::-webkit-details-marker { display: none; }
-  details.group summary::after { content: "▸"; margin-left: auto; }
-  details.group[open] summary::after { content: "▾"; }
-  .empty { text-align: center; color: var(--muted); padding: 32px 0 8px; }
-  .empty svg.i { width: 40px; height: 40px; color: var(--accent); }
+  details.group summary .chev { margin-left: auto; width: 20px; height: 20px; color: var(--muted); transition: transform .15s; }
+  details.group[open] summary .chev { transform: rotate(90deg); }
+  .empty { display: flex; align-items: center; gap: 8px; margin-top: 20px; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 600; }
+  .empty svg.i { width: 20px; height: 20px; }
+  .empty.all { flex-direction: column; justify-content: center; padding: 40px 16px; background: none; color: var(--muted); font-weight: 400; }
+  .empty.all svg.i { width: 40px; height: 40px; color: var(--accent); }
+  @media (min-width: 780px) {
+    main:has(> #view-plan:not([hidden])), body:has(#view-plan:not([hidden])) > header { max-width: 1040px; }
+    #filterSeg { max-width: 420px; }
+    .plan-cols { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  }
   .band { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 600; }
   .band.pending { margin-top: 12px; padding: 4px 4px 4px 14px; gap: 4px; }
   .band.pending span { flex: 1; }
   .band.pending button { border: 0; background: none; color: inherit; font-weight: 700; min-height: 44px; padding: 0 10px; }
   .band.pending button.sub { font-weight: 400; opacity: .8; }
-  .task .done-btn { flex: none; width: 44px; height: 44px; margin: 0 -8px 0 -4px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
-  .task .done-btn span { width: 24px; height: 24px; border-radius: 50%; border: 2px solid currentColor; display: grid; place-items: center; transition: background .15s; }
-  .task .done-btn svg.i { width: 16px; height: 16px; opacity: 0; }
+  .task .done-btn { flex: none; align-self: stretch; width: 48px; min-height: 48px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; border-radius: 8px; cursor: pointer; }
+  .task .done-btn span { width: 26px; height: 26px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); display: grid; place-items: center; transition: background .15s, border-color .15s, transform .15s; }
+  .task .done-btn:active span { transform: scale(.88); background: var(--accent-soft); border-color: var(--accent); }
+  .task .done-btn svg.i { width: 16px; height: 16px; stroke-width: 2.6; opacity: 0; transition: opacity .15s; }
+  .group.overdue .task .done-btn span { border-color: color-mix(in srgb, var(--danger) 60%, transparent); }
   .task .body { cursor: pointer; }
-  .task.leaving { opacity: .45; transition: opacity .2s; }
-  .task.leaving .done-btn span { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .task.leaving { opacity: .5; transition: opacity .25s; pointer-events: none; }
+  .task.leaving .t { text-decoration: line-through; }
+  .task.leaving .done-btn span { background: var(--accent); border-color: var(--accent); color: var(--on-accent); transform: scale(1.08); }
   .task.leaving .done-btn svg.i { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .task, .task .done-btn span, .task .done-btn svg.i, details.group summary .chev { transition: none; }
+  }
   .ts-text { font-size: 17px; font-weight: 600; margin: 4px 0 2px; word-break: break-word; }
   .quick { display: flex; gap: 8px; flex-wrap: wrap; }
   .quick button { flex: 1 1 22%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; }
@@ -185,6 +216,8 @@
   <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
 </svg>
 
 <header>
@@ -208,6 +241,10 @@
         </button>
       </div>
       <div class="hint" id="hint"></div>
+      <div class="seg mode-seg" role="group" aria-label="記録のしかた">
+        <button type="button" data-mode="auto" aria-pressed="true">おまかせで振り分け</button>
+        <button type="button" data-mode="task" aria-pressed="false">タスクで登録</button>
+      </div>
       <button class="text-btn" id="openText" type="button"><svg class="i"><use href="#i-keyboard"/></svg>文字で入力</button>
     </div>
 
@@ -238,10 +275,10 @@
         <button class="icon-btn" id="reloadTasks" type="button" aria-label="予定を更新"><svg class="i"><use href="#i-refresh"/></svg></button>
       </span>
     </div>
-    <div class="seg" role="group" aria-label="絞り込み">
-      <button type="button" data-filter="all" aria-pressed="true">すべて</button>
-      <button type="button" data-filter="仕事" aria-pressed="false">仕事</button>
-      <button type="button" data-filter="私生活" aria-pressed="false">私生活</button>
+    <div class="seg" id="filterSeg" role="group" aria-label="絞り込み">
+      <button type="button" data-filter="all" aria-pressed="true">すべて<span class="cnt" hidden></span></button>
+      <button type="button" data-filter="仕事" aria-pressed="false">仕事<span class="cnt" hidden></span></button>
+      <button type="button" data-filter="私生活" aria-pressed="false">私生活<span class="cnt" hidden></span></button>
     </div>
     <div id="planBody"></div>
   </section>
@@ -262,7 +299,7 @@
     <h2 id="textSheetTitle">文字で入力</h2>
     <button class="icon-btn" type="button" data-close="textSheet" aria-label="閉じる"><svg class="i"><use href="#i-close"/></svg></button>
   </div>
-  <textarea id="textInput" placeholder="例：明日までに見積を送る"></textarea>
+  <textarea id="textInput" placeholder="例：明日までに水上邸の見積を送る"></textarea>
   <div class="row"><button class="btn primary" id="sendText" type="button">記録する</button></div>
 </dialog>
 
@@ -494,8 +531,17 @@
     return list;
   }
 
+  // 「タスクで登録」を選んでいるときは、サーバーで全部タスクとして扱う
+  const recMode = () => (store.get('recMode') === 'task' ? 'task' : 'auto');
+  function applyRecMode() {
+    document.querySelectorAll('.mode-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === recMode())));
+    $('textInput').placeholder = recMode() === 'task' ? '例：明日までに水上邸の見積を送る（タスクとして登録）' : '例：明日までに水上邸の見積を送る';
+  }
+  document.querySelectorAll('.mode-seg button').forEach((b) => b.addEventListener('click', () => { store.set('recMode', b.dataset.mode); applyRecMode(); }));
+
   async function sendNew(payload) {
     payload.client_id = newId();
+    payload.mode = recMode();
     await idbSet('pending:' + payload.client_id, Object.assign({ at: Date.now() }, payload));
     return send(payload);
   }
@@ -672,36 +718,74 @@
   }
 
   let shownTasks = [];
-  function taskRows(items) {
+  // 1行＝本文＋（期限・私生活タグ）。大半を占める「仕事」はタグを付けず、私生活だけ印を付ける
+  function taskRows(items, showTag) {
     return '<ul class="tasks">' + items.map((t) => {
-      const pill = t.due ? relLabel(t.diff) : null;
+      const rel = t.due ? relLabel(t.diff) : null;
       const i = shownTasks.push(t) - 1;
+      const meta = (rel ? '<span class="due ' + rel.cls + '">' + rel.text + '・' + mdw(t.due) + '</span>' : '')
+        + (showTag && t.section === '私生活' ? '<span class="tag private">私生活</span>' : '');
+      const label = esc(t.text) + (rel ? '、' + rel.text : '') + (t.section ? '、' + esc(t.section) : '');
       return '<li class="task" data-i="' + i + '" data-sec="' + esc(t.section || '') + '">'
         + '<button type="button" class="done-btn" aria-label="完了にする：' + esc(t.text) + '"><span><svg class="i"><use href="#i-check"/></svg></span></button>'
-        + '<div class="body" role="button" tabindex="0"><div class="t">' + esc(t.text) + '</div>'
-        + '<div class="s">' + esc(t.section || '') + '</div></div>'
-        + (pill ? '<div class="pill ' + pill.cls + '"><b>' + pill.text + '</b><small>' + mdw(t.due) + '</small></div>' : '')
+        + '<div class="body" role="button" tabindex="0" aria-label="' + label + '（期限の変更・完了）"><div class="t">' + esc(t.text) + '</div>'
+        + '<div class="m">' + meta + '</div></div>'
         + '</li>';
     }).join('') + '</ul>';
   }
 
+  function renderFilterCounts(data) {
+    const all = [].concat(data.overdue || [], data.today || [], data.soon || [], data.nodate || []);
+    const n = { all: all.length, '仕事': 0, '私生活': 0 };
+    all.forEach((t) => { if (t.section in n) n[t.section]++; });
+    document.querySelectorAll('#filterSeg button').forEach((b) => {
+      const c = b.querySelector('.cnt');
+      if (!c) return;
+      c.textContent = n[b.dataset.filter] || 0;
+      c.hidden = false;
+    });
+  }
+
   function renderPlan(data, at) {
     shownTasks = [];
+    const filter = store.get('taskFilter') || 'all';
+    const showTag = filter === 'all';
     const g = groupTasks(data);
+    const icons = { overdue: 'i-alert', today: 'i-calendar' };
+    const head = (key, title, n) => '<h3 class="group-h">' + (icons[key] ? '<svg class="i" aria-hidden="true"><use href="#' + icons[key] + '"/></svg>' : '')
+      + '<span>' + title + '</span><span class="n" aria-label="' + n + '件">' + n + '</span>';
     const block = (key, title) => g[key].length
-      ? '<section class="group ' + key + '"><h3>' + title + '<span class="n">' + g[key].length + '件</span></h3>' + taskRows(g[key]) + '</section>' : '';
-    let html = block('overdue', '期限切れ') + block('today', '今日') + block('tomorrow', '明日') + block('week', '今週（2〜7日後）');
-    if (!g.overdue.length && !g.today.length) {
-      html = '<div class="empty"><svg class="i"><use href="#i-check"/></svg><div>今日やることはありません</div></div>' + html;
-    }
-    if (g.nodate.length) {
-      html += '<details class="group"><summary>期限なし ' + g.nodate.length + '件</summary>' + taskRows(g.nodate) + '</details>';
+      ? '<section class="group ' + key + '">' + head(key, title, g[key].length) + '</h3>' + taskRows(g[key], showTag) + '</section>' : '';
+    const datedCount = g.overdue.length + g.today.length + g.tomorrow.length + g.week.length;
+    let html;
+    if (!datedCount && !g.nodate.length) {
+      const what = filter === 'all' ? '' : filter + 'の';
+      html = '<div class="empty all"><svg class="i"><use href="#i-check"/></svg><div>' + what + 'タスクはありません</div></div>';
+    } else {
+      let dated = '';
+      if (!g.overdue.length && !g.today.length) {
+        dated += '<div class="empty"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>今日・期限切れのタスクはありません</span></div>';
+      }
+      dated += block('overdue', '期限切れ') + block('today', '今日') + block('tomorrow', '明日') + block('week', '7日以内');
+      let nodate = '';
+      if (g.nodate.length) {
+        const open = store.get('nodateOpen') !== '0';
+        nodate = '<details class="group nodate"' + (open ? ' open' : '') + '><summary class="group-h">'
+          + '<svg class="i" aria-hidden="true"><use href="#i-list"/></svg><span>期限なし</span><span class="n" aria-label="' + g.nodate.length + '件">' + g.nodate.length + '</span>'
+          + '<svg class="i chev" aria-hidden="true"><use href="#i-chev"/></svg></summary>' + taskRows(g.nodate, showTag) + '</details>';
+      }
+      html = '<div class="plan-cols"><div class="col">' + dated + '</div>' + (nodate ? '<div class="col">' + nodate + '</div>' : '') + '</div>';
     }
     if (data.inbox_count) html += '<div class="band"><span>受信箱の未整理</span><span>' + data.inbox_count + '件</span></div>';
     $('planBody').innerHTML = html;
     $('updatedAt').textContent = at ? new Date(at).toLocaleTimeString('ja-JP', { hour: 'numeric', minute: '2-digit' }) + ' 更新' : '';
+    renderFilterCounts(data);
     renderSummary(data);
   }
+  // 期限なしの開け閉めは覚えておく（自動更新で描き直しても戻らないように）
+  $('planBody').addEventListener('toggle', (e) => {
+    if (e.target.classList && e.target.classList.contains('nodate')) store.set('nodateOpen', e.target.open ? '1' : '0');
+  }, true);
 
   function renderSummary(data) {
     const g = groupTasks(data, 'all'); // 記録タブの件数と通知バッジは絞り込みに関係なく全件
@@ -826,9 +910,9 @@
   }));
   $('tsSetDate').addEventListener('click', () => { if ($('tsDate').value) changeDue(sheetTask, $('tsDate').value); });
   $('tsClear').addEventListener('click', () => changeDue(sheetTask, ''));
-  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('#filterSeg button').forEach((b) => b.addEventListener('click', () => {
     store.set('taskFilter', b.dataset.filter);
-    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('#filterSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     const c = cachedTasks();
     if (c) renderPlan(c.data, c.at);
   }));
@@ -980,8 +1064,9 @@
   // 前回送れなかった録音があれば知らせて、自動で送る
   refreshPending().then((list) => { if (list.length) flushPending(); });
   if (new URLSearchParams(location.search).get('view') === 'tasks') showTab('plan');
+  applyRecMode();
   const filter = store.get('taskFilter') || 'all';
-  document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === filter)));
+  document.querySelectorAll('#filterSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === filter)));
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
